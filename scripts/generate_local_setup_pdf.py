@@ -31,6 +31,7 @@ PDF_PATH = OUTPUT_DIR / "AgentCare_Local_Setup_Guide.pdf"
 OG_PATH = ROOT / "public" / "og.png"
 FLOW_PATH = ASSET_DIR / "local-runtime-flow.png"
 MAP_PATH = ASSET_DIR / "setup-validation-map.png"
+AGENTIC_PATH = ASSET_DIR / "agentic-ai-execution-flow.png"
 
 GREEN = colors.HexColor("#063D35")
 GREEN_2 = colors.HexColor("#0C5A4C")
@@ -138,6 +139,56 @@ def make_validation_map() -> None:
     canvas.save(MAP_PATH, quality=94)
 
 
+def make_agentic_image() -> None:
+    canvas = PILImage.new("RGB", (1600, 900), "#063D35")
+    draw = ImageDraw.Draw(canvas)
+    title_font = font(45, bold=True)
+    label_font = font(22, bold=True)
+    small_font = font(17)
+    draw.text((70, 45), "Evidence-gated agentic execution", font=title_font, fill="#FFFFFF")
+    draw.text(
+        (72, 108),
+        "Probabilistic proposals are separated from policy authority and transactional execution.",
+        font=small_font,
+        fill="#DCECE4",
+    )
+
+    top = [
+        ((70, 205, 320, 410), "Patient request\n+ identity", "#F2F7F3"),
+        ((390, 205, 650, 410), "Coordinator\npersisted state\n+ checkpoint", "#DCECE4"),
+        ((720, 205, 990, 410), "LLM proposals\nSafety + Intent\nor Routing", "#FFF9E8"),
+        ((1060, 205, 1530, 410), "RAG evidence\nversioned chunks\n+ citations", "#F2F7F3"),
+    ]
+    bottom = [
+        ((180, 555, 480, 770), "Deterministic\npolicy gate\n+ human threshold", "#DCECE4"),
+        ((560, 555, 880, 770), "MCP typed tools\nread + authorized\nmutations", "#F2F7F3"),
+        ((960, 555, 1260, 770), "Atomic SQL / D1\nbooking, documents,\naudit evidence", "#DCECE4"),
+        ((1340, 555, 1530, 770), "Human\nreview", "#FFF0E8"),
+    ]
+    for box, text, fill in [*top, *bottom]:
+        rounded_box(draw, box, fill, "#9AC8B3", radius=24, width=3)
+        centered_text(draw, box, text, label_font, "#18312D")
+
+    for x1, x2 in [(320, 390), (650, 720), (990, 1060)]:
+        draw.line((x1, 308, x2 - 17, 308), fill="#D59B28", width=7)
+        draw.polygon([(x2 - 18, 294), (x2, 308), (x2 - 18, 322)], fill="#D59B28")
+    draw.line((1295, 410, 1295, 485), fill="#D59B28", width=7)
+    draw.line((1295, 485, 330, 485), fill="#D59B28", width=7)
+    draw.line((330, 485, 330, 538), fill="#D59B28", width=7)
+    draw.polygon([(316, 537), (330, 555), (344, 537)], fill="#D59B28")
+    for x1, x2 in [(480, 560), (880, 960), (1260, 1340)]:
+        draw.line((x1, 662, x2 - 17, 662), fill="#D59B28", width=7)
+        draw.polygon([(x2 - 18, 648), (x2, 662), (x2 - 18, 676)], fill="#D59B28")
+
+    draw.text(
+        (70, 830),
+        "Observable proof: agent proposal + RAG reference + MCP trace + policy decision + committed record.",
+        font=small_font,
+        fill="#DCECE4",
+    )
+    canvas.save(AGENTIC_PATH, quality=94)
+
+
 def styles():
     base = getSampleStyleSheet()
     return {
@@ -243,6 +294,45 @@ def table(data, widths, header=True, font_size=7.7):
     return result
 
 
+def wrapped_table(data, widths, font_size=6.55):
+    body_style = ParagraphStyle(
+        "WrappedTableBody",
+        fontName="Helvetica",
+        fontSize=font_size,
+        leading=font_size + 2,
+        textColor=INK,
+        spaceAfter=0,
+    )
+    header_style = ParagraphStyle(
+        "WrappedTableHeader",
+        fontName="Helvetica-Bold",
+        fontSize=font_size,
+        leading=font_size + 2,
+        textColor=WHITE,
+        spaceAfter=0,
+    )
+    prepared = [
+        [Paragraph(str(cell), header_style if row_index == 0 else body_style) for cell in row]
+        for row_index, row in enumerate(data)
+    ]
+    result = Table(prepared, colWidths=widths, hAlign="LEFT", repeatRows=1)
+    commands = [
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("GRID", (0, 0), (-1, -1), 0.45, colors.HexColor("#B9CBC2")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("BACKGROUND", (0, 0), (-1, 0), GREEN),
+    ]
+    for row in range(1, len(prepared)):
+        commands.append(
+            ("BACKGROUND", (0, row), (-1, row), PALE if row % 2 == 0 else WHITE)
+        )
+    result.setStyle(TableStyle(commands))
+    return result
+
+
 def header_footer(canvas, doc):
     canvas.saveState()
     width, height = A4
@@ -328,6 +418,93 @@ def build_pdf() -> None:
         section_title("2", "Local architecture", s["h1"]),
         image_scaled(FLOW_PATH, 170 * mm, 91 * mm),
         P("The browser calls FastAPI locally. The backend owns JWT/RBAC, agents, RAG, MCP-style tools, SQLite transactions, uploads, and audit events. Only bounded proposals may use OpenAI.", s["small"]),
+        PageBreak(),
+    ]
+
+    story += [
+        section_title("2A", "Why this is an agentic AI project", s["h1"]),
+        P(
+            "AgentCare is a persisted, evidence-gated multi-agent workflow - not one chatbot prompt around an appointment form. The coordinator advances durable checkpoints; specialist agents propose or invoke bounded tools; policies and humans authorize; committed records establish truth.",
+            s["body"],
+        ),
+        image_scaled(AGENTIC_PATH, 170 * mm, 76 * mm),
+        Spacer(1, 4 * mm),
+        table(
+            [
+                ["Agent", "Purpose", "Boundary"],
+                ["Coordinator", "State graph, hand-offs, truthful status", "Workflow/checkpoints only"],
+                ["Safety", "Emergency and clinical-boundary gate", "Escalate + audit"],
+                ["Intent", "Hosted book/reschedule/cancel proposal", "Structured proposal only"],
+                ["Routing", "Evidence-grounded department proposal", "RAG, lookup, escalation"],
+                ["Appointment", "Search/book/cancel/reschedule", "Typed tools + atomic SQL"],
+                ["Document", "Type, dedupe, security, requirements", "No clinical interpretation"],
+                ["Follow-up", "Reminders and administrative tasks", "Committed records only"],
+            ],
+            [34 * mm, 69 * mm, 63 * mm],
+            font_size=7.0,
+        ),
+        Spacer(1, 5 * mm),
+        P(
+            "Python: backend/app/agents.py + orchestrator.py. Hosted: app/api/_agentic.ts + workflows/[workflowId]/advance/route.ts.",
+            s["callout"],
+        ),
+        PageBreak(),
+    ]
+
+    story += [
+        section_title("2B", "Exact use of LLM, RAG, MCP, and fine-tuning", s["h1"]),
+        wrapped_table(
+            [
+                ["Capability", "Exact implementation", "Purpose"],
+                [
+                    "LLM - Python",
+                    "openai-agents==0.2.10; Agent + Runner.run_sync; OPENAI_MODEL defaults to gpt-5-mini; max 3 turns",
+                    "Structured Safety and Routing proposals",
+                ],
+                [
+                    "LLM - hosted",
+                    "Direct fetch to OpenAI Responses API; strict JSON schema; deployment model gpt-5-mini",
+                    "Structured Safety and Intent proposals",
+                ],
+                [
+                    "RAG",
+                    "Versioned policy chunks; 128D local semantic hash; D1/SQL; cosine 45% + concepts 40% + lexical 15%",
+                    "Ground routing, providers, document rules, and guardrails",
+                ],
+                [
+                    "MCP - Python",
+                    "mcp==1.12.3 FastMCP: departments, approved policy, available slots",
+                    "Typed read boundary over hospital services",
+                ],
+                [
+                    "MCP - hosted",
+                    "JSON-RPC 2025-06-18: policy, RAG manifest, departments, slots, booking, cancel, reschedule, documents",
+                    "Audited read/write tool calls after authorization",
+                ],
+                [
+                    "Fine-tuning",
+                    "Optional OPENAI_FINE_TUNED_MODEL; only validated ft:* IDs; none currently claimed",
+                    "Future task consistency - never policy or authorization",
+                ],
+            ],
+            [31 * mm, 86 * mm, 49 * mm],
+            font_size=6.55,
+        ),
+        Spacer(1, 6 * mm),
+        P("RAG behavior", s["h2"]),
+        B("Catalog, terminology, document rules, providers, and guardrails are parsed and chunked.", s["bullet"]),
+        B("Evidence references include policy key, version, and chunk number.", s["bullet"]),
+        B("Live slots are excluded from RAG and queried transactionally through MCP.", s["bullet"]),
+        P("Fine-tuning truth", s["h2"]),
+        P(
+            "The current project uses a base model or deterministic fallback. A fine-tuned model is not required and is not falsely claimed. Policies, slots, authorization, and safety thresholds stay in RAG, MCP/SQL, and deterministic code.",
+            s["danger"],
+        ),
+        P("Reviewer-visible proof", s["h2"]),
+        B("agent_proposals: agent, decision, confidence, model, execution mode.", s["bullet"]),
+        B("RAG: chunk ID, policy version, score, excerpt, embedding model.", s["bullet"]),
+        B("MCP: server, transport, tool, input/output, status, timestamp.", s["bullet"]),
+        B("Audit + SQL/D1: checkpoints, escalations, human decisions, committed records.", s["bullet"]),
         PageBreak(),
     ]
 
@@ -553,7 +730,7 @@ pnpm install --frozen-lockfile
 
     doc.build(story, onFirstPage=header_footer, onLaterPages=header_footer)
     reader = PdfReader(str(PDF_PATH))
-    if len(reader.pages) < 8:
+    if len(reader.pages) < 10:
         raise RuntimeError("Generated guide is unexpectedly short")
     if not (reader.metadata and reader.metadata.title == "AgentCare Local Setup Guide"):
         raise RuntimeError("PDF metadata validation failed")
@@ -563,6 +740,7 @@ def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
     make_flow_image()
     make_validation_map()
+    make_agentic_image()
     build_pdf()
     print(PDF_PATH)
 

@@ -43,6 +43,169 @@ RAG, MCP-style hospital tools, SQLite transactions, uploads, and audit events.
 Only bounded agent proposals may use OpenAI. Policies and services remain
 authoritative.
 
+## 2A. Why this is an agentic AI project
+
+![AgentCare agentic AI execution flow](assets/agentic-ai-execution-flow.png)
+
+AgentCare is not a single chatbot prompt wrapped around an appointment form.
+It is a persisted, evidence-gated multi-agent workflow:
+
+1. The **Coordinator Agent** creates or resumes a durable workflow, selects the
+   next checkpoint, passes minimum necessary state, and never skips a paused
+   approval.
+2. The **Safety Agent** evaluates emergency and prohibited clinical language.
+   A deterministic safety policy remains authoritative even when an LLM
+   proposal is available.
+3. The hosted **Intent Agent** classifies `book`, `reschedule`, `cancel`, or a
+   safety-boundary intent. The Python path performs the same administrative
+   intent checkpoint inside its orchestrator.
+4. The **Department Routing Agent** retrieves approved RAG evidence, resolves
+   an active hospital department, and pauses for human review below the
+   autonomy threshold.
+5. The **Appointment Agent** invokes typed availability and booking tools. It
+   cannot claim success until the SQL transaction commits.
+6. The **Document Agent** classifies administrative document type, checks
+   signature, size, checksum, duplicates, patient mapping, active content, and
+   missing requirements. It does not interpret medical findings.
+7. The **Follow-up Agent** creates reminders and administrative tasks only from
+   committed records.
+8. Every checkpoint, proposal, evidence reference, tool call, transaction, and
+   human decision is persisted for review.
+
+The Python agent definitions and `AgentHarness` are in
+`backend/app/agents.py`; the durable Python coordinator is in
+`backend/app/orchestrator.py`. The hosted execution adapter is in
+`app/api/_agentic.ts`, with checkpoint progression in
+`app/api/workflows/[workflowId]/advance/route.ts`.
+
+### Agent roles and boundaries
+
+| Agent | Purpose | Allowed boundary |
+|---|---|---|
+| Coordinator | State graph, hand-offs, truthful status | Load/save workflow and checkpoints |
+| Safety | Emergency and non-clinical safety gate | Escalate and audit |
+| Intent | Administrative action classification in hosted path | Structured proposal only |
+| Routing | Evidence-grounded department proposal | RAG retrieval, department lookup, escalation |
+| Appointment | Search, book, cancel, and reschedule | Authorized typed tools and atomic SQL |
+| Document | Type, dedupe, security, and requirement checks | Document-only tools; no clinical interpretation |
+| Follow-up | Reminder and administrative task creation | Committed appointment records only |
+
+## 2B. Exact use of LLM, RAG, MCP, and fine-tuning
+
+### LLM: where it is used
+
+AgentCare has two real OpenAI integration paths:
+
+| Runtime | Client and model | Active purpose |
+|---|---|---|
+| Python/FastAPI | `openai-agents==0.2.10`; `Agent` and `Runner.run_sync`; `OPENAI_MODEL` defaults to `gpt-5-mini` | Structured Safety Agent and Department Routing Agent proposals, limited to three turns |
+| Hosted worker | Direct HTTPS `fetch` to the OpenAI Responses API at `/v1/responses`; `OPENAI_AGENT_MODEL`; deployment configured for `gpt-5-mini` | Structured Safety Agent and Intent Agent proposals using strict JSON schema |
+
+The hosted source has a code-level fallback model value, but the deployed model
+is selected by the environment. The model never receives database credentials
+and never directly books, cancels, reschedules, validates a document, writes
+SQL, or approves a clinical action.
+
+LLM execution is enabled only when the relevant API key and enablement settings
+are present. The Python path requires both `LLM_ENABLED=true` and
+`OPENAI_API_KEY`. If the key is absent, quota is unavailable, the provider
+fails, or structured output is invalid, the workflow records and uses
+`deterministic_fallback`.
+
+### RAG: what is indexed and why
+
+RAG supplies approved hospital context; it is not used as a transactional
+database and does not search the public internet.
+
+- Source content: 42 hospital specialties, 126 unique synthetic providers,
+  routing signals, canonical terminology and colloquial synonyms, document
+  rules, provider-directory evidence, and safety guardrails.
+- Parsing: structured hospital catalog and versioned policy documents.
+- Chunking: bounded semantic chunks for routing, providers, document rules, and
+  guardrails.
+- Embeddings: 128-dimensional privacy-local semantic hash vectors. The hosted
+  identifier is `agentcare-private-semantic-hash-v1`.
+- Storage: active/versioned RAG chunks are persisted in D1 by the hosted path;
+  the Python path retrieves active `PolicyDocument` SQL rows.
+- Retrieval: hybrid score = cosine similarity `45%` + canonical concept match
+  `40%` + lexical overlap `15%`.
+- Evidence: results carry references such as
+  `policy:routing-urology:2026-07-24.1#chunk-0`.
+
+Live appointment availability is intentionally excluded from RAG because
+vectors become stale. Slots are read from the transactional database through
+MCP immediately before selection or booking.
+
+Implementation files:
+
+- Hosted: `app/api/_rag.ts` and `app/api/_routing_knowledge.ts`
+- Python: `backend/app/policy_rag.py` and
+  `backend/app/hospital_catalog.py`
+
+### MCP: where tools are exposed and invoked
+
+The Python backend exposes a real FastMCP server using `mcp==1.12.3` in
+`backend/app/mcp_server.py`. Its read tools are:
+
+- `lookup_departments`
+- `retrieve_approved_policy`
+- `find_available_slots`
+
+Write actions remain behind the authenticated API and policy gate.
+
+The hosted worker implements an MCP JSON-RPC `2025-06-18` tool surface named
+`AgentCare Hospital Administration`. It exposes:
+
+- `retrieve_approved_policy`
+- `lookup_departments`
+- `inspect_rag_index`
+- `find_available_slots`
+- `book_appointment_slot`
+- `cancel_appointment_slot`
+- `reschedule_appointment_slot`
+- `check_document_requirements`
+
+The Routing Agent calls policy retrieval and department lookup. The Appointment
+Agent calls live availability and the atomic booking/cancellation/rescheduling
+tools. The Document Agent calls document-requirement checks. Every hosted call
+records agent, MCP server, transport, tool, input, output, status, and timestamp
+as an auditable trace.
+
+### Fine-tuning: transparent status
+
+No fine-tuned model is currently claimed or required. The application is
+designed to work with the base model plus RAG, typed tools, and deterministic
+policy gates.
+
+The hosted adapter supports an optional `OPENAI_FINE_TUNED_MODEL` value only
+after a de-identified evaluation demonstrates that the model is safe and
+useful. A configured value must be a validated `ft:*` model ID. Runtime evidence
+records one of:
+
+- `base_model`
+- `fine_tuned_model`
+- `deterministic_fallback`
+
+Current policies, department directories, live slots, authorization rules, and
+safety thresholds must remain in RAG, MCP/SQL, and policy code - not in
+fine-tuned weights. This prevents a model update from silently changing
+hospital authority.
+
+### How a reviewer can prove the wiring
+
+Open a case in the staff workbench or inspect persisted API details:
+
+- `agent_proposals` shows agent, decision, confidence, model, and execution
+  mode.
+- RAG evidence shows chunk ID, policy version, excerpt, retrieval score, and
+  embedding model.
+- MCP traces show server, `mcp-json-rpc` transport, tool, input/output, status,
+  and time.
+- Audit events include `agent.proposal.created`, `mcp.tool.called`, workflow
+  checkpoints, escalations, and human decisions.
+- Appointment and document confirmation is reconstructed from persisted SQL/D1
+  records, not generated from model text.
+
 ## 3. Clone and inspect the repository
 
 ### Windows PowerShell
