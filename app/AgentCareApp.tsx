@@ -187,8 +187,8 @@ const API =
 const demoAccounts: DemoAccount[] = [
   { id: "patient-chinmay", name: "Chinmay Kashikar", email: "chinmay.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Synthetic Demo Patient" },
   { id: "patient-mayuresh", name: "Mayuresh Kashikar", email: "mayuresh.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Synthetic Demo Patient" },
-  { id: "reviewer-vikas", name: "Dr Vikas Jha", email: "vikas.jha@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Clinical operations physician reviewer" },
-  { id: "reviewer-arunima", name: "Dr Arunima Gosavi", email: "arunima.gosavi@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Care coordination physician reviewer" },
+  { id: "reviewer-vikas", name: "Dr Vikas Jha", email: "vikas.jha@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Synthetic Demo Doctor · Clinical operations reviewer" },
+  { id: "reviewer-arunima", name: "Dr Arunima Gosavi", email: "arunima.gosavi@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Synthetic Demo Doctor · Care coordination reviewer" },
 ];
 const primaryAccounts: Record<Role, DemoAccount> = {
   patient: demoAccounts[0],

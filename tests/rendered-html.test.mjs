@@ -118,6 +118,8 @@ test("build contains the AgentCare product and hosted API", async () => {
   assert.match(accounts, /patient-mayuresh/);
   assert.equal((accounts.match(/title: "Synthetic Demo Patient"/g) || []).length, 2);
   assert.match(app, /Synthetic Demo Patient/);
+  assert.equal((accounts.match(/title: "Synthetic Demo Doctor/g) || []).length, 2);
+  assert.match(app, /Synthetic Demo Doctor/);
   assert.match(accounts, /reviewer-vikas/);
   assert.match(accounts, /reviewer-arunima/);
   assert.equal((accounts.match(/role: "patient"/g) || []).length, 2);

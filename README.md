@@ -296,11 +296,12 @@ Copy `.env.example` values to local `.env` files as needed. Never commit `.env`.
 |---|---|---|
 | Synthetic Demo Patient - Chinmay Kashikar | `chinmay.kashikar@agentcare.demo` | `Patient123!` |
 | Synthetic Demo Patient - Mayuresh Kashikar | `mayuresh.kashikar@agentcare.demo` | `Patient123!` |
-| Staff/doctor - Dr Vikas Jha | `vikas.jha@agentcare.demo` | `Reviewer123!` |
-| Staff/doctor - Dr Arunima Gosavi | `arunima.gosavi@agentcare.demo` | `Reviewer123!` |
+| Synthetic Demo Doctor - Dr Vikas Jha | `vikas.jha@agentcare.demo` | `Reviewer123!` |
+| Synthetic Demo Doctor - Dr Arunima Gosavi | `arunima.gosavi@agentcare.demo` | `Reviewer123!` |
 
-These are the only demo accounts. Both patient identities are visibly labelled
-`Synthetic Demo Patient`; all records associated with them are synthetic. The UI
+These are the only demo accounts. Patient identities are visibly labelled
+`Synthetic Demo Patient`, and staff identities are labelled `Synthetic Demo Doctor`;
+all records associated with them are synthetic. The UI
 test-identity selector supports every account, patient records are isolated by
 patient ID, and staff actions require an authenticated reviewer identity plus
 server-side role and permission checks.
