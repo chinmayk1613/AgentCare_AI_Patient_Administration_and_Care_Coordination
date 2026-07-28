@@ -185,8 +185,8 @@ const API =
     ? "http://127.0.0.1:8000"
     : "");
 const demoAccounts: DemoAccount[] = [
-  { id: "patient-chinmay", name: "Chinmay Kashikar", email: "chinmay.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-mayuresh", name: "Mayuresh Kashikar", email: "mayuresh.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
+  { id: "patient-chinmay", name: "Chinmay Kashikar", email: "chinmay.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Synthetic Demo Patient" },
+  { id: "patient-mayuresh", name: "Mayuresh Kashikar", email: "mayuresh.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Synthetic Demo Patient" },
   { id: "reviewer-vikas", name: "Dr Vikas Jha", email: "vikas.jha@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Clinical operations physician reviewer" },
   { id: "reviewer-arunima", name: "Dr Arunima Gosavi", email: "arunima.gosavi@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Care coordination physician reviewer" },
 ];
@@ -308,7 +308,7 @@ export function AgentCareApp() {
   const [role, setRole] = useState<Role>("patient");
   const [token, setToken] = useState("");
   const [name, setName] = useState("Chinmay Kashikar");
-  const [accountTitle, setAccountTitle] = useState("Patient");
+  const [accountTitle, setAccountTitle] = useState("Synthetic Demo Patient");
   const [currentAccountId, setCurrentAccountId] = useState("patient-chinmay");
   const [requestText, setRequestText] = useState(
     "I need a cardiology follow-up next week. I also want to attach my previous ECG.",
@@ -1064,7 +1064,7 @@ export function AgentCareApp() {
               >
                 <optgroup label="Patients">
                   {demoAccounts.filter((account) => account.role === "patient").map((account) => (
-                    <option key={account.id} value={account.id}>{account.name}</option>
+                    <option key={account.id} value={account.id}>{account.name} · {account.title}</option>
                   ))}
                 </optgroup>
                 <optgroup label="Staff and doctors">
