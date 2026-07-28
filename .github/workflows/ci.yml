@@ -50,14 +50,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import py_compile
 
           files = sorted(Path("backend").rglob("*.py"))
           if not files:
               raise SystemExit("No Python source files found")
 
           for path in files:
-              py_compile.compile(str(path), doraise=True)
+              try:
+                  compile(path.read_text(encoding="utf-8"), str(path), "exec")
+              except Exception as exc:
+                  print(f"::error file={path}::{type(exc).__name__}: {exc}")
+                  raise
 
           print(f"Compiled {len(files)} Python files")
           PY
