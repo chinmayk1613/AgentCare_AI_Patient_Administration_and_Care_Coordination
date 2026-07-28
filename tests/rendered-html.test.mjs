@@ -64,6 +64,8 @@ test("build contains the AgentCare product and hosted API", async () => {
   assert.match(advanceRoute, /callMcpTool\("Routing Agent", "retrieve_approved_policy"/);
   assert.match(advanceRoute, /nextStatus = "awaiting_input"/);
   assert.match(advanceRoute, /nextStatus = expected.length \? "awaiting_document"/);
+  assert.match(advanceRoute, /CARDIOVASCULAR_SAFETY_LANGUAGE/);
+  assert.match(advanceRoute, /cardiovascularSafetySignal/);
   assert.match(advanceRoute, /check_document_requirements/);
   assert.match(confirmRoute, /patient_confirmed: true/);
   assert.match(confirmRoute, /book_appointment_slot/);

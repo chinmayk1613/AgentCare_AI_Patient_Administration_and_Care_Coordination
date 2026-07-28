@@ -58,6 +58,39 @@ def test_clinical_request_is_blocked_and_reviewable(client, patient_headers, rev
     assert any(item["reason_code"] == "CLINICAL_REQUEST_BLOCKED" for item in queue.json())
 
 
+def test_heart_area_pain_is_safety_escalated_and_never_routed_to_orthopedics(
+    client, patient_headers, reviewer_headers
+):
+    response = client.post(
+        "/api/workflows",
+        headers=patient_headers,
+        json={
+            "request_text": (
+                "From few days ago it started paining in my heart. "
+                "I need to consult with a doctor and add my previous heart report."
+            ),
+            "idempotency_key": f"test-{uuid.uuid4()}",
+            "confirm_first_available": False,
+        },
+    )
+    assert response.status_code == 200, response.text
+    workflow = response.json()
+    assert workflow["status"] == "human_review"
+    assert workflow["current_step"] == "safety_escalation"
+    safety = workflow["state"]["safety"]
+    assert safety["reason_code"] == "CARDIOVASCULAR_SAFETY_LANGUAGE"
+    assert safety["recommended_department"]["code"] == "cardiology"
+    assert safety["clinical_triage_required"] is True
+    assert "orthopedic" not in str(workflow["state"]).lower()
+
+    queue = client.get("/api/staff/escalations", headers=reviewer_headers)
+    assert any(
+        item["workflow_run_id"] == workflow["id"]
+        and item["reason_code"] == "CARDIOVASCULAR_SAFETY_LANGUAGE"
+        for item in queue.json()
+    )
+
+
 def test_patient_cannot_access_staff_queue(client, patient_headers):
     response = client.get("/api/staff/escalations", headers=patient_headers)
     assert response.status_code == 403

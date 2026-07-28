@@ -1,4 +1,4 @@
-export const RAG_CORPUS_VERSION = "2026-07-24.1";
+export const RAG_CORPUS_VERSION = "2026-07-28.2";
 export const RAG_EMBEDDING_MODEL = "agentcare-private-semantic-hash-v1";
 
 export type TerminologyEntry = {
@@ -37,6 +37,8 @@ export const TERMINOLOGY: TerminologyEntry[] = [
   { canonical: "leg", synonyms: ["leg", "legs", "limb", "limbs"] },
   { canonical: "fracture", synonyms: ["fracture", "fractured", "broken bone", "bone break"] },
   { canonical: "heart_rhythm", synonyms: ["palpitation", "palpitations", "heart racing", "racing heart", "heart pounding", "irregular heartbeat"] },
+  { canonical: "heart_area", synonyms: ["heart", "heart area", "cardiac area", "chest", "chest area", "centre of chest", "center of chest"] },
+  { canonical: "pressure", synonyms: ["pressure", "tightness", "tight", "heaviness", "squeezing"] },
   { canonical: "headache", synonyms: ["headache", "head pain", "migraine"] },
   { canonical: "numbness", synonyms: ["numbness", "numb", "pins and needles", "tingling"] },
   { canonical: "hives", synonyms: ["hives", "welts", "allergic rash"] },
@@ -145,12 +147,36 @@ export const APPROVED_ROUTING_CONCEPTS: ApprovedRoutingConcept[] = [
     rationale: "Joint pain recommends Orthopedic Surgery but remains reviewable because specialties can overlap.",
   },
   {
+    id: "orthopedics-leg-pain",
+    departmentCode: "orthopedic-surgery",
+    label: "leg pain",
+    requiredTerms: ["leg", "pain"],
+    autonomy: "review",
+    rationale: "Leg pain recommends Orthopedic Surgery for administrative review while preserving human confirmation for overlapping specialties.",
+  },
+  {
     id: "orthopedics-fracture",
     departmentCode: "orthopedic-surgery",
     label: "fracture follow-up",
     requiredTerms: ["fracture"],
     autonomy: "route",
     rationale: "Approved administrative terminology maps a non-emergency fracture follow-up request to Orthopedic Surgery.",
+  },
+  {
+    id: "cardiology-heart-area-pain",
+    departmentCode: "cardiology",
+    label: "heart or chest-area pain",
+    requiredTerms: ["heart_area", "pain"],
+    autonomy: "review",
+    rationale: "Heart or chest-area pain is safety-sensitive. It recommends Cardiology only as context for authorized clinical triage and must never be routed autonomously.",
+  },
+  {
+    id: "cardiology-heart-area-pressure",
+    departmentCode: "cardiology",
+    label: "heart or chest-area pressure",
+    requiredTerms: ["heart_area", "pressure"],
+    autonomy: "review",
+    rationale: "Heart or chest-area pressure is safety-sensitive. It recommends Cardiology only as context for authorized clinical triage and must never be routed autonomously.",
   },
   {
     id: "cardiology-palpitations",
@@ -230,6 +256,11 @@ export function canonicalTerms(value: string) {
       .filter((entry) => entry.synonyms.some((synonym) => phrasePattern(synonym).test(lower)))
       .map((entry) => entry.canonical),
   );
+}
+
+export function cardiovascularSafetySignal(value: string) {
+  const terms = canonicalTerms(value);
+  return terms.has("heart_area") && (terms.has("pain") || terms.has("pressure"));
 }
 
 export function conceptsForDepartment(departmentCode: string) {

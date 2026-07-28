@@ -138,6 +138,7 @@ def lookup_department(db: Session, request_text: str) -> tuple[Department | None
         return token
 
     request_tokens = {routing_token(token) for token in re.findall(r"[a-z]{3,}", text)}
+    request_tokens.discard("pain")
     scored: list[tuple[int, Department]] = []
     for code, _, symptom_text in SPECIALTIES:
         department = by_code.get(code)
@@ -149,6 +150,7 @@ def lookup_department(db: Session, request_text: str) -> tuple[Department | None
             for symptom in symptoms
             for token in re.findall(r"[a-z]{3,}", symptom)
         }
+        department_tokens.discard("pain")
         exact_phrase_bonus = sum(2 for symptom in symptoms if symptom in text)
         score = exact_phrase_bonus + len(request_tokens & department_tokens)
         if score:

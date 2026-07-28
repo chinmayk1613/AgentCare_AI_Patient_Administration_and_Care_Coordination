@@ -4,7 +4,7 @@ import { getDb } from "../../db";
 import { appointmentSlots, hospitalCatalogControls } from "../../db/schema";
 import { HOSPITAL_DEPARTMENTS, departmentByCode } from "./_hospital_catalog";
 import { ragIndexManifest, retrieveRagEvidence } from "./_rag";
-import { RAG_CORPUS_VERSION, analyzeApprovedConcepts } from "./_routing_knowledge";
+import { RAG_CORPUS_VERSION, analyzeApprovedConcepts, cardiovascularSafetySignal } from "./_routing_knowledge";
 
 export type TimelineItem = {
   step: string;
@@ -143,7 +143,7 @@ async function lookupDepartment(requestText: string) {
     .map((department) => {
       const matchedSignals = department.symptoms.filter((symptom) => lower.includes(symptom));
       const tokenScore = (symptom: string) => symptom.split(/\s+/).filter((token) =>
-        token.length >= 3 && new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:s|es|ful|ing|ed)?\\b`, "i").test(lower),
+        token !== "pain" && token.length >= 3 && new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:s|es|ful|ing|ed)?\\b`, "i").test(lower),
       ).length;
       const tokenSignals = department.symptoms.filter((symptom) => tokenScore(symptom) > 0);
       const signals = [...new Set([...matchedSignals, ...tokenSignals])];
@@ -151,7 +151,7 @@ async function lookupDepartment(requestText: string) {
         department.symptoms
           .flatMap((symptom) => symptom.split(/\s+/))
           .filter((token) =>
-            token.length >= 3 && new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:s|es|ful|ing|ed)?\\b`, "i").test(lower),
+            token !== "pain" && token.length >= 3 && new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:s|es|ful|ing|ed)?\\b`, "i").test(lower),
           ),
       );
       const score = matchedSignals.length * 2 + matchedTokens.size;
@@ -207,12 +207,19 @@ function documentRequirements(requestText: string, departmentCode: string) {
   }
   if (lower.includes("blood") || lower.includes("lab")) expected.push("LAB_REPORT");
   if (lower.includes("referral")) expected.push("REFERRAL");
+  const vagueCardiacRecord =
+    /\b(?:heart|cardiac)\s+(?:report|record|document|test)\b/.test(lower) &&
+    !/\becg\b|\bekg\b|\bechocardiogram\b|\becho report\b|\bangiogram\b|\bholter\b/.test(lower);
   return {
     department_code: departmentCode,
     expected: [...new Set(expected)],
     rule_version: `document-requirements-${RAG_CORPUS_VERSION}`,
     evidence_refs: evidenceRefs,
     clinical_interpretation: false,
+    clarification_required: vagueCardiacRecord,
+    clarification_prompt: vagueCardiacRecord
+      ? "Please specify the record type (for example ECG, echocardiogram, angiogram, or Holter report) before uploading. The system does not infer document type from “heart report.”"
+      : null,
   };
 }
 
@@ -432,7 +439,7 @@ export async function callMcpTool(
 
 function deterministicProposal(agent: string, requestText: string): AgentProposal {
   const lower = requestText.toLowerCase();
-  const urgent = ["chest pain", "can't breathe", "cannot breathe", "severe bleeding", "unconscious", "suicidal", "stroke"].some((term) => lower.includes(term));
+  const urgent = cardiovascularSafetySignal(requestText) || ["chest pain", "can't breathe", "cannot breathe", "severe bleeding", "unconscious", "suicidal", "stroke"].some((term) => lower.includes(term));
   const prohibited = ["diagnose me", "what disease", "prescribe", "what dosage", "change my dose", "which medicine"].some((term) => lower.includes(term));
   const intent = lower.includes("cancel") ? "cancel" : lower.includes("reschedul") ? "reschedule" : "book";
   return {

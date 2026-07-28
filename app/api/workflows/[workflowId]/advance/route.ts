@@ -10,6 +10,7 @@ import {
   type ToolTrace,
 } from "../../../_agentic";
 import { identityFromRequest, unauthorized, workflowView, writeAudit } from "../../../_lib";
+import { cardiovascularSafetySignal } from "../../../_routing_knowledge";
 
 const EMERGENCY_TERMS = ["chest pain", "can't breathe", "cannot breathe", "severe bleeding", "unconscious", "suicidal", "stroke"];
 const CLINICAL_TERMS = ["diagnose me", "what disease", "prescribe", "what dosage", "change my dose", "which medicine"];
@@ -74,7 +75,8 @@ export async function POST(request: Request, context: { params: Promise<{ workfl
 
   if (workflow.currentStep === "registration") {
     const proposal = await proposeAdministrativeDecision("Safety Agent", workflow.requestText);
-    const emergency = EMERGENCY_TERMS.some((term) => lower.includes(term));
+    const cardiovascularSignal = cardiovascularSafetySignal(workflow.requestText);
+    const emergency = cardiovascularSignal || EMERGENCY_TERMS.some((term) => lower.includes(term));
     const clinical = CLINICAL_TERMS.some((term) => lower.includes(term));
     state = { ...state, agent_proposals: proposals(state, proposal) };
     await writeAudit({
@@ -86,7 +88,7 @@ export async function POST(request: Request, context: { params: Promise<{ workfl
       metadata: { agent: proposal.agent, model: proposal.model, execution_mode: proposal.execution_mode, decision: proposal.decision },
     });
     if (emergency || clinical) {
-      const reasonCode = emergency ? "EMERGENCY_LANGUAGE" : "CLINICAL_REQUEST_BLOCKED";
+      const reasonCode = cardiovascularSignal ? "CARDIOVASCULAR_SAFETY_LANGUAGE" : emergency ? "EMERGENCY_LANGUAGE" : "CLINICAL_REQUEST_BLOCKED";
       await db.insert(escalations).values({
         workflowRunId: workflowId,
         reasonCode,
@@ -96,7 +98,14 @@ export async function POST(request: Request, context: { params: Promise<{ workfl
       state = appendTimeline(
         {
           ...state,
-          safety: { decision: "escalate", reason_code: reasonCode, proposal },
+          safety: {
+            decision: "escalate",
+            reason_code: reasonCode,
+            proposal,
+            ...(cardiovascularSignal
+              ? { recommended_department: { code: "cardiology", name: "Cardiology" }, clinical_triage_required: true }
+              : {}),
+          },
           message: emergency
             ? "This request requires immediate human attention. Contact local emergency services if there may be an emergency."
             : "This clinical request is outside autonomous administration and has been sent for human review.",

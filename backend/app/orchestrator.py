@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from .agents import APPOINTMENT, COORDINATOR, FOLLOW_UP, ROUTING, SAFETY, AgentHarness
 from .models import Appointment, WorkflowRun, User
+from .hospital_catalog import cardiovascular_safety_signal
 from .policy_rag import retrieve_policy
 from .services import (
     audit,
@@ -91,13 +92,22 @@ class WorkflowOrchestrator:
         self._checkpoint(run, "registration", {"patient_resolved": True})
 
         text = request_text.lower()
+        cardiovascular_signal = cardiovascular_safety_signal(request_text)
         emergency_hits = sorted(term for term in EMERGENCY_TERMS if term in text)
+        if cardiovascular_signal:
+            emergency_hits.append("heart_or_chest_area_pain_or_pressure")
         prohibited_hits = sorted(term for term in PROHIBITED_TERMS if term in text)
         llm_safety = self.harness.propose(
             SAFETY, request_text, {"emergency_hits": emergency_hits, "prohibited_hits": prohibited_hits}
         )
         if emergency_hits or prohibited_hits:
-            reason_code = "EMERGENCY_LANGUAGE" if emergency_hits else "CLINICAL_REQUEST_BLOCKED"
+            reason_code = (
+                "CARDIOVASCULAR_SAFETY_LANGUAGE"
+                if cardiovascular_signal
+                else "EMERGENCY_LANGUAGE"
+                if emergency_hits
+                else "CLINICAL_REQUEST_BLOCKED"
+            )
             severity = "urgent" if emergency_hits else "high"
             escalation = create_escalation(
                 self.db,
@@ -123,6 +133,17 @@ class WorkflowOrchestrator:
                         "decision": "escalate",
                         "reason_code": reason_code,
                         "llm_proposal": llm_safety.model_dump() if llm_safety else None,
+                        **(
+                            {
+                                "recommended_department": {
+                                    "code": "cardiology",
+                                    "name": "Cardiology",
+                                },
+                                "clinical_triage_required": True,
+                            }
+                            if cardiovascular_signal
+                            else {}
+                        ),
                     },
                     "message": (
                         "This request cannot be handled autonomously. If this may be an emergency, "

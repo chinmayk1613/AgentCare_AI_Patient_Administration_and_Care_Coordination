@@ -52,7 +52,7 @@ FIRST_NAMES = [
 ]
 LAST_NAMES = ["Adler", "Bennett", "Chen", "Dubois", "Garcia", "Hassan", "Ivanov", "Johansson"]
 
-RAG_CORPUS_VERSION = "2026-07-24.1"
+RAG_CORPUS_VERSION = "2026-07-28.2"
 RAG_EMBEDDING_MODEL = "agentcare-private-semantic-hash-v1"
 
 TERMINOLOGY = {
@@ -70,8 +70,11 @@ TERMINOLOGY = {
     "abdomen": ["abdomen", "abdominal", "belly", "stomach", "tummy"],
     "reflux": ["acid reflux", "heartburn", "acid coming up", "sour taste"],
     "joint": ["joint", "joints", "knee", "knees", "shoulder", "shoulders", "hip", "hips"],
+    "leg": ["leg", "legs", "limb", "limbs"],
     "fracture": ["fracture", "fractured", "broken bone", "bone break"],
     "heart_rhythm": ["palpitation", "palpitations", "heart racing", "racing heart", "heart pounding", "irregular heartbeat"],
+    "heart_area": ["heart", "heart area", "cardiac area", "chest", "chest area", "centre of chest", "center of chest"],
+    "pressure": ["pressure", "tightness", "tight", "heaviness", "squeezing"],
     "headache": ["headache", "head pain", "migraine"],
     "numbness": ["numbness", "numb", "pins and needles", "tingling"],
     "hives": ["hives", "welts", "allergic rash"],
@@ -94,7 +97,10 @@ ROUTING_CONCEPTS = [
     ("gastroenterology-abdominal-pain", "gastroenterology", "abdominal pain", ["abdomen", "pain"], "review"),
     ("gastroenterology-reflux", "gastroenterology", "acid reflux", ["reflux"], "route"),
     ("orthopedics-joint-pain", "orthopedic-surgery", "joint pain", ["joint", "pain"], "review"),
+    ("orthopedics-leg-pain", "orthopedic-surgery", "leg pain", ["leg", "pain"], "review"),
     ("orthopedics-fracture", "orthopedic-surgery", "fracture follow-up", ["fracture"], "route"),
+    ("cardiology-heart-area-pain", "cardiology", "heart or chest-area pain", ["heart_area", "pain"], "review"),
+    ("cardiology-heart-area-pressure", "cardiology", "heart or chest-area pressure", ["heart_area", "pressure"], "review"),
     ("cardiology-palpitations", "cardiology", "palpitations", ["heart_rhythm"], "review"),
     ("neurology-headache", "neurology", "headache", ["headache"], "review"),
     ("neurology-numbness", "neurology", "numbness or tingling", ["numbness"], "review"),
@@ -129,6 +135,11 @@ def canonical_terms(value: str) -> set[str]:
             for synonym in synonyms
         )
     }
+
+
+def cardiovascular_safety_signal(value: str) -> bool:
+    terms = canonical_terms(value)
+    return "heart_area" in terms and bool({"pain", "pressure"} & terms)
 
 
 def concepts_for_department(department_code: str):
