@@ -6,16 +6,48 @@ type PrivateBucket = {
     value: ArrayBuffer | Uint8Array | string,
     options?: { httpMetadata?: { contentType?: string }; customMetadata?: Record<string, string> },
   ) => Promise<unknown>;
+  list: (options: { prefix: string; cursor?: string }) => Promise<{
+    objects: { key: string }[];
+    truncated: boolean;
+    cursor?: string;
+  }>;
+  delete: (keys: string | string[]) => Promise<unknown>;
 };
 
 export const UPLOAD_CHUNK_SIZE = 512 * 1024;
-export const MAX_UPLOAD_SIZE = 25 * 1024 * 1024;
+export const MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
 export const ACCEPTED_UPLOAD_TYPES = new Set(["application/pdf", "image/png", "image/jpeg", "text/plain"]);
 
 export function privateUploads() {
   const bucket = (env as unknown as { UPLOADS?: PrivateBucket }).UPLOADS;
   if (!bucket) throw new Error("Private R2 binding UPLOADS is unavailable");
   return bucket;
+}
+
+export async function deleteLegacyDemoUploads() {
+  const bucket = privateUploads();
+  const prefixes = [
+    "patients/demo-patient-1/",
+    "patients/demo-patient-2/",
+    "patients/demo-patient-3/",
+    "patients/demo-patient-4/",
+    "patients/demo-patient-5/",
+    "patients/demo-patient-6/",
+  ];
+  let deleted = 0;
+  for (const prefix of prefixes) {
+    let cursor: string | undefined;
+    do {
+      const page = await bucket.list({ prefix, cursor });
+      const keys = page.objects.map((item) => item.key);
+      if (keys.length) {
+        await bucket.delete(keys);
+        deleted += keys.length;
+      }
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+  }
+  return deleted;
 }
 
 export function safeFilename(value: string) {

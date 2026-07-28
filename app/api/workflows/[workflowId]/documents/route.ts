@@ -3,6 +3,7 @@ import { getDb } from "../../../../../db";
 import { documents, workflows } from "../../../../../db/schema";
 import { appendTimeline } from "../../../_agentic";
 import { identityFromRequest, unauthorized, writeAudit } from "../../../_lib";
+import { enforceRateLimit } from "../../../_rate_limit";
 
 const acceptedTypes = new Set(["application/pdf", "image/png", "image/jpeg", "text/plain"]);
 
@@ -19,6 +20,11 @@ export async function POST(request: Request, context: { params: Promise<{ workfl
   const identity = identityFromRequest(request);
   if (!identity) return unauthorized();
   if (identity.role !== "patient" || !identity.patientId) return Response.json({ detail: "Patient role required" }, { status: 403 });
+  if (request.headers.get("x-agentcare-synthetic-data") !== "confirmed") {
+    return Response.json({ detail: "Only synthetic demonstration documents may be uploaded. Confirmation is required." }, { status: 400 });
+  }
+  const rateLimit = await enforceRateLimit(request, "document-upload", 6, 300, identity.id);
+  if (rateLimit) return rateLimit;
   const { workflowId } = await context.params;
   const db = getDb();
   const [workflow] = await db.select().from(workflows).where(eq(workflows.id, workflowId)).limit(1);

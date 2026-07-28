@@ -64,6 +64,13 @@ export const auditEvents = sqliteTable("audit_events", {
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const apiRateLimits = sqliteTable("api_rate_limits", {
+  rateKey: text("rate_key").primaryKey(),
+  windowStartedAt: integer("window_started_at").notNull(),
+  requestCount: integer("request_count").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const uploadSessions = sqliteTable("upload_sessions", {
   id: text("id").primaryKey(),
   workflowRunId: text("workflow_run_id").notNull(),

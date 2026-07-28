@@ -31,10 +31,9 @@ def login(client: TestClient, email: str, password: str) -> dict[str, str]:
 
 @pytest.fixture
 def patient_headers(client):
-    return login(client, "patient@agentcare.demo", "Patient123!")
+    return login(client, "chinmay.kashikar@agentcare.demo", "Patient123!")
 
 
 @pytest.fixture
 def reviewer_headers(client):
-    return login(client, "reviewer@agentcare.demo", "Reviewer123!")
-
+    return login(client, "vikas.jha@agentcare.demo", "Reviewer123!")

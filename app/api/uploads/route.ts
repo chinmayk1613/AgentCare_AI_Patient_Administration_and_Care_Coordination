@@ -3,17 +3,23 @@ import { getDb } from "../../../db";
 import { uploadSessions, workflows } from "../../../db/schema";
 import { ACCEPTED_UPLOAD_TYPES, MAX_UPLOAD_SIZE, UPLOAD_CHUNK_SIZE, safeFilename } from "../_uploads";
 import { identityFromRequest, unauthorized, writeAudit } from "../_lib";
+import { enforceRateLimit } from "../_rate_limit";
 
 export async function POST(request: Request) {
   const identity = identityFromRequest(request);
   if (!identity) return unauthorized();
   if (identity.role !== "patient" || !identity.patientId) return Response.json({ detail: "Patient role required" }, { status: 403 });
+  if (request.headers.get("x-agentcare-synthetic-data") !== "confirmed") {
+    return Response.json({ detail: "Only synthetic demonstration documents may be uploaded. Confirmation is required." }, { status: 400 });
+  }
+  const rateLimit = await enforceRateLimit(request, "upload-session", 6, 300, identity.id);
+  if (rateLimit) return rateLimit;
   const body = await request.json() as { workflow_id?: string; filename?: string; content_type?: string; size_bytes?: number; declared_type?: string };
   const filename = safeFilename(body.filename || "");
   const contentType = body.content_type || "";
   const sizeBytes = Number(body.size_bytes || 0);
   if (!body.workflow_id || !ACCEPTED_UPLOAD_TYPES.has(contentType)) return Response.json({ detail: "Unsupported document type" }, { status: 415 });
-  if (sizeBytes < 1 || sizeBytes > MAX_UPLOAD_SIZE) return Response.json({ detail: "Document must be between 1 byte and 25 MB" }, { status: 413 });
+  if (sizeBytes < 1 || sizeBytes > MAX_UPLOAD_SIZE) return Response.json({ detail: "Document must be between 1 byte and 10 MB" }, { status: 413 });
   const db = getDb();
   const [workflow] = await db.select().from(workflows).where(eq(workflows.id, body.workflow_id)).limit(1);
   if (!workflow || workflow.patientId !== identity.patientId) return Response.json({ detail: "Workflow not found" }, { status: 404 });

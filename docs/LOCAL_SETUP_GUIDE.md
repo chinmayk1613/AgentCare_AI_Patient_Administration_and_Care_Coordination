@@ -486,14 +486,17 @@ Important behavior:
 
 | Role | Email | Password |
 |---|---|---|
-| Patient | `patient@agentcare.demo` | `Patient123!` |
-| Staff | `staff@agentcare.demo` | `Staff123!` |
-| Reviewer | `reviewer@agentcare.demo` | `Reviewer123!` |
-| Orthopedic reviewer | `priya.orthopedics@agentcare.demo` | `Reviewer123!` |
-| Cardiology reviewer | `elena.cardiology@agentcare.demo` | `Reviewer123!` |
+| Patient - Chinmay Kashikar | `chinmay.kashikar@agentcare.demo` | `Patient123!` |
+| Patient - Mayuresh Kashikar | `mayuresh.kashikar@agentcare.demo` | `Patient123!` |
+| Staff/doctor - Dr Vikas Jha | `vikas.jha@agentcare.demo` | `Reviewer123!` |
+| Staff/doctor - Dr Arunima Gosavi | `arunima.gosavi@agentcare.demo` | `Reviewer123!` |
 
-Additional synthetic patients and staff are documented in `README.md`.
-Never use real patient information when demonstrating the project.
+These are the only demo accounts.
+
+> **Demonstration only — not for clinical use.** Use synthetic data only. Never
+> enter or upload real protected health information (PHI). Public-demo uploads
+> require explicit confirmation, are rate-limited, and accept PDF, PNG, JPEG,
+> or TXT up to 10 MB.
 
 ## 8. End-to-end verification
 
@@ -501,7 +504,7 @@ Never use real patient information when demonstrating the project.
 
 ### Test A - normal patient journey
 
-1. Sign in as `patient@agentcare.demo`.
+1. Sign in as `chinmay.kashikar@agentcare.demo`.
 2. Submit:
 
    ```text

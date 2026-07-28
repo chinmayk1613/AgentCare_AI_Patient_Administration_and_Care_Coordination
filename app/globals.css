@@ -105,6 +105,16 @@ h2 { margin: 5px 0 0; font-size: 20px; }
 .role-switch button.selected { color: var(--green-dark); background: white; box-shadow: 0 2px 7px rgba(0,0,0,.08); font-weight: 700; }
 .notice { display: flex; align-items: center; gap: 9px; max-width: 1480px; margin: 0 auto 18px; padding: 10px 14px; border: 1px solid #cfe1d7; border-radius: 10px; color: #315b4b; background: rgba(234, 245, 238, .76); font-size: 11px; }
 .notice span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; color: white; background: var(--green); font-size: 10px; font-weight: 800; }
+.public-safety-banner {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; max-width: 1480px; margin: -8px auto 18px; padding: 10px 14px;
+  border: 1px solid #e5c790; border-radius: 10px; color: #694717; background: #fff7e7; font-size: 11px; line-height: 1.45;
+}
+.public-safety-banner b { color: #8a3e2f; }
+.synthetic-confirmation {
+  display: flex !important; align-items: flex-start; gap: 8px; margin: 9px 0 0 !important;
+  color: #714c1c !important; font-size: 9px !important; font-weight: 700 !important; line-height: 1.45;
+}
+.synthetic-confirmation input { flex: 0 0 auto; margin: 1px 0 0; accent-color: var(--green); }
 
 .patient-grid, .staff-grid { max-width: 1480px; margin: 0 auto; display: grid; gap: 17px; }
 .patient-grid { grid-template-columns: minmax(310px, .78fr) minmax(540px, 1.5fr); align-items: start; }

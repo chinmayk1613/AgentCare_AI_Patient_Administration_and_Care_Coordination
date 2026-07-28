@@ -160,21 +160,14 @@ const API =
     ? "http://127.0.0.1:8000"
     : "");
 const demoAccounts: DemoAccount[] = [
-  { id: "patient-maya", name: "Maya Chen", email: "patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-noah", name: "Noah Williams", email: "noah.patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-sofia", name: "Sofia Rossi", email: "sofia.patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-liam", name: "Liam O'Connor", email: "liam.patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-aisha", name: "Aisha Khan", email: "aisha.patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "patient-mateo", name: "Mateo Garcia", email: "mateo.patient@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
-  { id: "reviewer-alex", name: "Dr. Alex Morgan", email: "reviewer@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Clinical operations reviewer" },
-  { id: "reviewer-priya", name: "Dr. Priya Singh", email: "priya.orthopedics@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Orthopedics reviewer" },
-  { id: "reviewer-elena", name: "Dr. Elena Novak", email: "elena.cardiology@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Cardiology reviewer" },
-  { id: "reviewer-samuel", name: "Dr. Samuel Okafor", email: "samuel.general@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "General Medicine reviewer" },
-  { id: "reviewer-hannah", name: "Hannah Weber", email: "hannah.coordination@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Care coordination staff" },
+  { id: "patient-chinmay", name: "Chinmay Kashikar", email: "chinmay.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
+  { id: "patient-mayuresh", name: "Mayuresh Kashikar", email: "mayuresh.kashikar@agentcare.demo", password: "Patient123!", role: "patient", title: "Patient" },
+  { id: "reviewer-vikas", name: "Dr Vikas Jha", email: "vikas.jha@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Clinical operations physician reviewer" },
+  { id: "reviewer-arunima", name: "Dr Arunima Gosavi", email: "arunima.gosavi@agentcare.demo", password: "Reviewer123!", role: "reviewer", title: "Care coordination physician reviewer" },
 ];
 const primaryAccounts: Record<Role, DemoAccount> = {
   patient: demoAccounts[0],
-  reviewer: demoAccounts[6],
+  reviewer: demoAccounts[2],
 };
 
 const edgeCasePrompts = [
@@ -289,9 +282,9 @@ function caseNumber(workflow: Pick<Workflow, "id" | "case_number">) {
 export function AgentCareApp() {
   const [role, setRole] = useState<Role>("patient");
   const [token, setToken] = useState("");
-  const [name, setName] = useState("Maya Chen");
+  const [name, setName] = useState("Chinmay Kashikar");
   const [accountTitle, setAccountTitle] = useState("Patient");
-  const [currentAccountId, setCurrentAccountId] = useState("patient-maya");
+  const [currentAccountId, setCurrentAccountId] = useState("patient-chinmay");
   const [requestText, setRequestText] = useState(
     "I need a cardiology follow-up next week. I also want to attach my previous ECG.",
   );
@@ -590,14 +583,23 @@ export function AgentCareApp() {
     if (!selected || !token) return;
     const form = event.currentTarget;
     const input = form.elements.namedItem("document") as HTMLInputElement;
+    const syntheticConfirmation = form.elements.namedItem("synthetic") as HTMLInputElement;
+    if (!syntheticConfirmation?.checked) {
+      setNotice("Confirm that the file contains synthetic demonstration data only. Never upload real PHI.");
+      return;
+    }
     if (!input.files?.[0]) return;
     const file = input.files[0];
+    if (file.size > 10 * 1024 * 1024) {
+      setNotice("Document exceeds the 10 MB public-demo upload limit.");
+      return;
+    }
     setBusy(true);
     setUploadProgress({ progress: 1, status: "preparing", message: "Creating a private upload session…" });
     try {
       const initResponse = await fetch(`${API}/api/uploads`, {
         method: "POST",
-        headers: authHeaders,
+        headers: { ...authHeaders, "X-AgentCare-Synthetic-Data": "confirmed" },
         body: JSON.stringify({
           workflow_id: selected.id,
           filename: file.name,
@@ -913,6 +915,10 @@ export function AgentCareApp() {
           <span>{apiOnline ? "✓" : "!"}</span>
           {notice}
         </div>
+        <div className="public-safety-banner" role="note">
+          <b>Demonstration only — not for clinical use.</b>
+          <span>Use synthetic data only. Never enter or upload real protected health information (PHI).</span>
+        </div>
 
         {signedOut ? (
           <section className="signin-panel panel">
@@ -1213,6 +1219,10 @@ export function AgentCareApp() {
                           : "Document requirements satisfied"}
                       </label>
                       <div><input id="document" name="document" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt" disabled={!selected.state.documents.missing?.length} /><button disabled={busy || !selected.state.documents.missing?.length}>Validate document</button></div>
+                      <label className="synthetic-confirmation">
+                        <input name="synthetic" type="checkbox" required disabled={!selected.state.documents.missing?.length} />
+                        I confirm this file contains synthetic demonstration data only and no real PHI.
+                      </label>
                       {uploadProgress ? (
                         <div className={`upload-progress ${uploadProgress.status}`}>
                           <div><span style={{ width: `${uploadProgress.progress}%` }} /></div>
@@ -1495,6 +1505,10 @@ export function AgentCareApp() {
                           <input id="document-record-upload" name="document" type="file" accept=".pdf,.png,.jpg,.jpeg,.txt" />
                           <button disabled={busy}>Upload and validate</button>
                         </div>
+                        <label className="synthetic-confirmation">
+                          <input name="synthetic" type="checkbox" required />
+                          I confirm this file contains synthetic demonstration data only and no real PHI.
+                        </label>
                         <small>Accepted: PDF, PNG, JPG, or TXT up to 10 MB. Files are checked without clinical interpretation.</small>
                         {uploadProgress && (
                           <div className="upload-progress">

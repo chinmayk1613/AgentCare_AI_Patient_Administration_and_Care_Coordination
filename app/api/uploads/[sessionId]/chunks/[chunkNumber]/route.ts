@@ -3,11 +3,14 @@ import { getDb } from "../../../../../../db";
 import { uploadChunks, uploadSessions } from "../../../../../../db/schema";
 import { inspectChunk, privateUploads, sha256 } from "../../../../_uploads";
 import { identityFromRequest, unauthorized } from "../../../../_lib";
+import { enforceRateLimit } from "../../../../_rate_limit";
 
 export async function POST(request: Request, context: { params: Promise<{ sessionId: string; chunkNumber: string }> }) {
   const identity = identityFromRequest(request);
   if (!identity) return unauthorized();
   if (identity.role !== "patient") return Response.json({ detail: "Patient role required" }, { status: 403 });
+  const rateLimit = await enforceRateLimit(request, "upload-chunk", 180, 300, identity.id);
+  if (rateLimit) return rateLimit;
   const { sessionId, chunkNumber: rawChunkNumber } = await context.params;
   const chunkNumber = Number(rawChunkNumber);
   const db = getDb();

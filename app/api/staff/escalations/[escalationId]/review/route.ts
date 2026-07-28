@@ -9,11 +9,14 @@ import {
   type ToolTrace,
 } from "../../../../_agentic";
 import { forbidden, identityFromRequest, unauthorized, workflowView, writeAudit } from "../../../../_lib";
+import { enforceRateLimit } from "../../../../_rate_limit";
 
 export async function POST(request: Request, context: { params: Promise<{ escalationId: string }> }) {
   const identity = identityFromRequest(request);
   if (!identity) return unauthorized();
   if (identity.role !== "reviewer") return forbidden();
+  const rateLimit = await enforceRateLimit(request, "staff-review", 30, 60, identity.id);
+  if (rateLimit) return rateLimit;
   const role = identity.role;
   const { escalationId } = await context.params;
   const id = Number(escalationId);

@@ -169,6 +169,9 @@ that the patient attended.
 The hosted demo credentials and opaque tokens are intentionally synthetic and
 must be replaced by OIDC/OAuth 2.1 before any non-demo use.
 
+> **Demonstration only — not for clinical use.** Use synthetic data only. Never
+> enter or upload real protected health information (PHI).
+
 ### Without Docker
 
 Backend:
@@ -195,13 +198,25 @@ Copy `.env.example` values to local `.env` files as needed. Never commit `.env`.
 
 | Role | Accounts | Password |
 |---|---|---|
-| Primary patient | `patient@agentcare.demo` | `Patient123!` |
-| Additional patients | `noah.patient@agentcare.demo`, `sofia.patient@agentcare.demo`, `liam.patient@agentcare.demo`, `aisha.patient@agentcare.demo`, `mateo.patient@agentcare.demo` | `Patient123!` |
-| Staff | `staff@agentcare.demo` | `Staff123!` |
-| Primary reviewer | `reviewer@agentcare.demo` | `Reviewer123!` |
-| Additional staff/doctors | `priya.orthopedics@agentcare.demo`, `elena.cardiology@agentcare.demo`, `samuel.general@agentcare.demo`, `hannah.coordination@agentcare.demo` | `Reviewer123!` |
+| Patient - Chinmay Kashikar | `chinmay.kashikar@agentcare.demo` | `Patient123!` |
+| Patient - Mayuresh Kashikar | `mayuresh.kashikar@agentcare.demo` | `Patient123!` |
+| Staff/doctor - Dr Vikas Jha | `vikas.jha@agentcare.demo` | `Reviewer123!` |
+| Staff/doctor - Dr Arunima Gosavi | `arunima.gosavi@agentcare.demo` | `Reviewer123!` |
 
-All records are synthetic. The UI test-identity selector supports every account and patient records are isolated by patient ID.
+These are the only demo accounts. All records are synthetic. The UI
+test-identity selector supports every account, patient records are isolated by
+patient ID, and staff actions require an authenticated reviewer identity plus
+server-side role and permission checks.
+
+The public demo applies persistent D1-backed rate limits to login, workflow
+creation, appointment mutations, staff decisions, and document uploads.
+Uploads require an explicit synthetic-data confirmation, accept only PDF, PNG,
+JPEG, or TXT, enforce a 10 MB limit, verify file signatures, scan for active or
+prompt-injection content, and store bytes in private R2. The OpenAI key is a
+server-only hosted environment variable and is never included in browser code.
+The public-release migration clears prior synthetic cases and bookings, while
+an authenticated maintenance action removes uploads belonging to the retired
+demo-patient identities before public access is enabled.
 
 ## Demonstration
 

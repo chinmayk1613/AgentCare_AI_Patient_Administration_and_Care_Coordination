@@ -20,40 +20,34 @@ def seed() -> None:
     with SessionLocal() as db:
         if db.scalar(select(User).limit(1)):
             return
-        patient = User(
-            name="Maya Chen",
-            email="patient@agentcare.demo",
+        chinmay = User(
+            name="Chinmay Kashikar",
+            email="chinmay.kashikar@agentcare.demo",
             password_hash=hash_password("Patient123!"),
             role="patient",
         )
-        staff = User(
-            name="Leonie Weber",
-            email="staff@agentcare.demo",
-            password_hash=hash_password("Staff123!"),
-            role="staff",
-            department_scope="all",
+        mayuresh = User(
+            name="Mayuresh Kashikar",
+            email="mayuresh.kashikar@agentcare.demo",
+            password_hash=hash_password("Patient123!"),
+            role="patient",
         )
-        reviewer = User(
-            name="Dr. Alex Morgan",
-            email="reviewer@agentcare.demo",
+        vikas = User(
+            name="Dr Vikas Jha",
+            email="vikas.jha@agentcare.demo",
             password_hash=hash_password("Reviewer123!"),
             role="reviewer",
             department_scope="all",
         )
-        new_patients = [
-            User(name="Noah Williams", email="noah.patient@agentcare.demo", password_hash=hash_password("Patient123!"), role="patient"),
-            User(name="Sofia Rossi", email="sofia.patient@agentcare.demo", password_hash=hash_password("Patient123!"), role="patient"),
-            User(name="Liam O'Connor", email="liam.patient@agentcare.demo", password_hash=hash_password("Patient123!"), role="patient"),
-            User(name="Aisha Khan", email="aisha.patient@agentcare.demo", password_hash=hash_password("Patient123!"), role="patient"),
-            User(name="Mateo Garcia", email="mateo.patient@agentcare.demo", password_hash=hash_password("Patient123!"), role="patient"),
-        ]
-        new_reviewers = [
-            User(name="Dr. Priya Singh", email="priya.orthopedics@agentcare.demo", password_hash=hash_password("Reviewer123!"), role="reviewer", department_scope="orthopedic-surgery"),
-            User(name="Dr. Elena Novak", email="elena.cardiology@agentcare.demo", password_hash=hash_password("Reviewer123!"), role="reviewer", department_scope="cardiology"),
-            User(name="Dr. Samuel Okafor", email="samuel.general@agentcare.demo", password_hash=hash_password("Reviewer123!"), role="reviewer", department_scope="general-medicine"),
-            User(name="Hannah Weber", email="hannah.coordination@agentcare.demo", password_hash=hash_password("Reviewer123!"), role="staff", department_scope="all"),
-        ]
-        db.add_all([patient, staff, reviewer, *new_patients, *new_reviewers])
+        arunima = User(
+            name="Dr Arunima Gosavi",
+            email="arunima.gosavi@agentcare.demo",
+            password_hash=hash_password("Reviewer123!"),
+            role="reviewer",
+            department_scope="all",
+        )
+        patients = [chinmay, mayuresh]
+        db.add_all([*patients, vikas, arunima])
         db.flush()
         db.add_all([
             PatientProfile(
@@ -62,7 +56,7 @@ def seed() -> None:
                 preferred_language="en",
                 emergency_contact="Synthetic Demo Contact",
             )
-            for index, item in enumerate([patient, *new_patients])
+            for index, item in enumerate(patients)
         ])
         validate_catalog()
         departments = [

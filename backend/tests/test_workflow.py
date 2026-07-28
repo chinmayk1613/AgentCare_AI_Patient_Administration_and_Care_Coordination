@@ -65,17 +65,12 @@ def test_patient_cannot_access_staff_queue(client, patient_headers):
 
 def test_new_patient_and_staff_accounts_can_sign_in(client):
     new_patients = [
-        "noah.patient@agentcare.demo",
-        "sofia.patient@agentcare.demo",
-        "liam.patient@agentcare.demo",
-        "aisha.patient@agentcare.demo",
-        "mateo.patient@agentcare.demo",
+        "chinmay.kashikar@agentcare.demo",
+        "mayuresh.kashikar@agentcare.demo",
     ]
     new_staff = [
-        "priya.orthopedics@agentcare.demo",
-        "elena.cardiology@agentcare.demo",
-        "samuel.general@agentcare.demo",
-        "hannah.coordination@agentcare.demo",
+        "vikas.jha@agentcare.demo",
+        "arunima.gosavi@agentcare.demo",
     ]
     for email in new_patients:
         response = client.post(

@@ -3,6 +3,7 @@ import { getDb } from "../../../../db";
 import { appointments, auditEvents, documents, workflows } from "../../../../db/schema";
 import { appendTimeline, appendToolTraces, callMcpTool } from "../../_agentic";
 import { forbidden, identityFromRequest, unauthorized, workflowView, writeAudit } from "../../_lib";
+import { enforceRateLimit } from "../../_rate_limit";
 
 type AppointmentRow = typeof appointments.$inferSelect;
 const HOSPITAL_TIME_ZONE = "Asia/Kolkata";
@@ -193,6 +194,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ workf
   const resolved = await resolveAppointment(request, workflowId);
   if ("response" in resolved) return resolved.response;
   const { identity, workflow, appointment } = resolved;
+  const rateLimit = await enforceRateLimit(request, "appointment-mutation", 30, 60, identity.id);
+  if (rateLimit) return rateLimit;
   const body = await request.json() as {
     action?: "cancel" | "reschedule" | "clinical_update";
     reason?: string;

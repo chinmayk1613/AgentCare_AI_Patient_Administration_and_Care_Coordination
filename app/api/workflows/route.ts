@@ -3,6 +3,7 @@ import { getDb } from "../../../db";
 import { workflows } from "../../../db/schema";
 import { appendTimeline } from "../_agentic";
 import { identityFromRequest, unauthorized, workflowView, writeAudit } from "../_lib";
+import { enforceRateLimit } from "../_rate_limit";
 
 export async function GET(request: Request) {
   const identity = identityFromRequest(request);
@@ -18,6 +19,8 @@ export async function POST(request: Request) {
   const identity = identityFromRequest(request);
   if (!identity) return unauthorized();
   if (identity.role !== "patient" || !identity.patientId) return Response.json({ detail: "Patient role required" }, { status: 403 });
+  const rateLimit = await enforceRateLimit(request, "workflow-create", 12, 60, identity.id);
+  if (rateLimit) return rateLimit;
 
   const body = (await request.json()) as {
     request_text?: string;

@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("build contains the AgentCare product and hosted API", async () => {
   await access(new URL("../dist/server/index.js", import.meta.url));
-  const [app, styles, layout, hosting, migration, uploadMigration, slotMigration, ragMigration, appointmentMigration, workflowRoute, workflowDetailRoute, advanceRoute, confirmRoute, appointmentRoute, uploadProcess, reviewRoute, reviewDetailRoute, agentic, accounts, authLib, hospitalCatalog, routingKnowledge, ragPipeline] = await Promise.all([
+  const [app, styles, layout, hosting, migration, uploadMigration, slotMigration, ragMigration, appointmentMigration, rateLimitMigration, workflowRoute, workflowDetailRoute, advanceRoute, confirmRoute, appointmentRoute, uploadRoute, uploadProcess, reviewRoute, reviewDetailRoute, agentic, accounts, authLib, rateLimit, hospitalCatalog, routingKnowledge, ragPipeline] = await Promise.all([
     readFile(new URL("../app/AgentCareApp.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -14,17 +14,20 @@ test("build contains the AgentCare product and hosted API", async () => {
     readFile(new URL("../drizzle/0002_wise_cyclops.sql", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0003_certain_starfox.sql", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0004_majestic_annihilus.sql", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0005_dashing_lord_tyger.sql", import.meta.url), "utf8"),
     readFile(new URL("../app/api/workflows/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/workflows/[workflowId]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/workflows/[workflowId]/advance/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/workflows/[workflowId]/confirm-slot/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/appointments/[workflowId]/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/uploads/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/uploads/[sessionId]/process/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/staff/escalations/[escalationId]/review/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/staff/escalations/[escalationId]/route.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_agentic.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_accounts.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_lib.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/_rate_limit.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_hospital_catalog.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_routing_knowledge.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/api/_rag.ts", import.meta.url), "utf8"),
@@ -45,6 +48,8 @@ test("build contains the AgentCare product and hosted API", async () => {
   assert.match(appointmentMigration, /CREATE TABLE `appointments`/);
   assert.match(appointmentMigration, /doctor_notes/);
   assert.match(appointmentMigration, /prescribed_medications_json/);
+  assert.match(rateLimitMigration, /CREATE TABLE `api_rate_limits`/);
+  assert.match(rateLimitMigration, /DELETE FROM `workflows`/);
   assert.match(workflowRoute, /status: "running"/);
   assert.doesNotMatch(workflowRoute, /status: "completed"/);
   assert.match(workflowDetailRoute, /patientDocuments/);
@@ -78,6 +83,12 @@ test("build contains the AgentCare product and hosted API", async () => {
   assert.match(agentic, /inspect_rag_index/);
   assert.match(agentic, /APPROVED_RAG_CONCEPT_MATCH/);
   assert.match(app, /Encrypted private upload/);
+  assert.match(app, /Demonstration only — not for clinical use/);
+  assert.match(app, /synthetic demonstration data only and no real PHI/);
+  assert.match(uploadRoute, /X-AgentCare-Synthetic-Data|x-agentcare-synthetic-data/i);
+  assert.match(uploadRoute, /10 MB/);
+  assert.match(rateLimit, /status: 429/);
+  assert.match(rateLimit, /api_rate_limits/);
   assert.match(app, /window\.setInterval/);
   assert.match(app, /setHospitalClock\(Date\.now\(\)\), 1_000/);
   assert.match(app, /await loadWorkflows\(\)/);
@@ -90,12 +101,12 @@ test("build contains the AgentCare product and hosted API", async () => {
   assert.match(app, /Administrative edge-case test catalog/);
   assert.match(app, /Test account/);
   assert.match(app, /processState\.status === "mismatch"/);
-  assert.match(accounts, /patient-noah/);
-  assert.match(accounts, /patient-mateo/);
-  assert.match(accounts, /reviewer-priya/);
-  assert.match(accounts, /reviewer-hannah/);
-  assert.equal((accounts.match(/role: "patient"/g) || []).length, 6);
-  assert.equal((accounts.match(/role: "reviewer"/g) || []).length, 5);
+  assert.match(accounts, /patient-chinmay/);
+  assert.match(accounts, /patient-mayuresh/);
+  assert.match(accounts, /reviewer-vikas/);
+  assert.match(accounts, /reviewer-arunima/);
+  assert.equal((accounts.match(/role: "patient"/g) || []).length, 2);
+  assert.equal((accounts.match(/role: "reviewer"/g) || []).length, 2);
   assert.match(authLib, /identityFromRequest/);
   assert.match(authLib, /case_number: caseNumber/);
   assert.match(authLib, /`AC-\$\{row\.id/);
