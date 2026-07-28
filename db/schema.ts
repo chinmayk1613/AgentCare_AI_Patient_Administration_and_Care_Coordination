@@ -71,6 +71,23 @@ export const apiRateLimits = sqliteTable("api_rate_limits", {
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
 
+export const demoPatientProfiles = sqliteTable("demo_patient_profiles", {
+  patientId: text("patient_id").primaryKey(),
+  phone: text("phone"),
+  preferredLanguage: text("preferred_language").notNull().default("en"),
+  emergencyContact: text("emergency_contact"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const hospitalCatalogControls = sqliteTable("hospital_catalog_controls", {
+  id: text("id").primaryKey(),
+  entityType: text("entity_type").notNull(),
+  departmentCode: text("department_code").notNull(),
+  displayName: text("display_name").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const uploadSessions = sqliteTable("upload_sessions", {
   id: text("id").primaryKey(),
   workflowRunId: text("workflow_run_id").notNull(),

@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 import { and, asc, eq, gt } from "drizzle-orm";
 import { getDb } from "../../db";
-import { appointmentSlots } from "../../db/schema";
+import { appointmentSlots, hospitalCatalogControls } from "../../db/schema";
 import { HOSPITAL_DEPARTMENTS, departmentByCode } from "./_hospital_catalog";
 import { ragIndexManifest, retrieveRagEvidence } from "./_rag";
 import { RAG_CORPUS_VERSION, analyzeApprovedConcepts } from "./_routing_knowledge";
@@ -223,9 +223,18 @@ export function activeDepartments() {
 async function availableSlots(departmentCode: string) {
   const department = departmentByCode(departmentCode);
   if (!department) return [];
+  const db = getDb();
+  const controls = await db.select().from(hospitalCatalogControls);
+  const departmentControl = controls.find((item) => item.id === `department:${department.code}`);
+  if (departmentControl?.active === false) return [];
+  const activeDoctors = new Set(department.doctors.filter((doctor) => {
+    const control = controls.find((item) => item.id === `doctor:${department.code}:${doctor}`);
+    return control?.active !== false;
+  }));
+  if (!activeDoctors.size) return [];
   const departmentIndex = HOSPITAL_DEPARTMENTS.findIndex((item) => item.code === departmentCode);
   const now = new Date();
-  const seedRows = department.doctors.flatMap((doctor, doctorIndex) =>
+  const seedRows = department.doctors.filter((doctor) => activeDoctors.has(doctor)).flatMap((doctor, doctorIndex) =>
     [0, 1, 2, 3].map((cycle) => {
       const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 8 + doctorIndex * 2, doctorIndex === 1 ? 30 : 0));
       start.setUTCDate(start.getUTCDate() + 2 + cycle * 4 + ((departmentIndex + doctorIndex) % 3));
@@ -241,7 +250,6 @@ async function availableSlots(departmentCode: string) {
       };
     }),
   );
-  const db = getDb();
   await db.insert(appointmentSlots).values(seedRows).onConflictDoNothing();
   const rows = await db
     .select()
@@ -253,7 +261,7 @@ async function availableSlots(departmentCode: string) {
     ))
     .orderBy(asc(appointmentSlots.startTime))
     .limit(9);
-  return rows.map((slot) => ({
+  return rows.filter((slot) => activeDoctors.has(slot.doctorName)).map((slot) => ({
     id: slot.id,
     doctor: slot.doctorName,
     start_time: slot.startTime,

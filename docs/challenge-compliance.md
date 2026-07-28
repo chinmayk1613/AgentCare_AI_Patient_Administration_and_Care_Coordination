@@ -6,7 +6,7 @@ Audited against the supplied challenge statement on 2026-07-28.
 
 | Requirement | Status | Implementation evidence |
 |---|---|---|
-| Identify or create patient record | Partial | Authentication resolves a persisted synthetic patient profile. A patient self-service create/update profile screen is not yet implemented. |
+| Identify or create patient record | Implemented | Authentication resolves a persisted synthetic patient profile; the ownership-scoped My profile workspace performs audited backend updates. |
 | Detect administrative intent | Implemented | Safety and Intent agents persist `book`, `reschedule`, or `cancel` proposals and checkpoints. |
 | Route to department | Implemented | Versioned RAG chunks, retrieval evidence, approved concepts, confidence gates, and human review are wired to the routing workflow. |
 | Retrieve doctors and live slots | Implemented | The Appointment Agent invokes MCP against transactional SQL slot state and excludes booked slots. |
@@ -25,11 +25,11 @@ Audited against the supplied challenge statement on 2026-07-28.
 | Patient submits requests and views status | Implemented | Patient-scoped workflow APIs and UI. |
 | Patient books, reschedules, and cancels | Implemented | Backend ownership checks plus appointment actions in the detail window and natural-language agent flow. |
 | Patient uploads and views documents | Implemented | Patient ownership is enforced by backend routes. |
-| Patient views reminders/follow-up | Implemented | Appointment detail displays current reminder and clinician follow-up records. |
-| Patient creates/updates profile | Partial | Synthetic profiles are persisted and resolved, but no self-service profile editor exists. |
+| Patient views reminders/follow-up | Implemented | A dedicated Reminders & Follow-up workspace displays persisted task type, scheduled IST time, status, case number, appointment context, and clinician-entered follow-up records; appointment detail remains available for the full case. |
+| Patient creates/updates profile | Implemented | My profile calls a patient-only API, persists phone/language/emergency contact, and audits the update. |
 | Staff reviews escalations and approvals | Implemented | Staff-only APIs, complete evidence package, decision rationale, workflow resume, and audit log. |
 | Staff views workflow/audit history | Implemented | Staff workbench and audit evidence UI. |
-| Staff manages departments/doctors/slots | Partial | The catalog and slots are real and persistent, but there is no staff CRUD screen for catalog administration. |
+| Staff manages departments/doctors/slots | Implemented | Staff-only directory APIs and UI persist department/doctor activation controls, create unique future slots, protect booked slots, and audit changes. |
 | Clinician records outcome/notes/medicines | Implemented extension | Only accounts with backend `clinical:write` permission (or Python reviewer/admin role) can enter clinical records. AgentCare never generates them. |
 
 ## Technical and agentic requirements
@@ -50,11 +50,23 @@ Audited against the supplied challenge statement on 2026-07-28.
 | Synthetic data and secret safety | Implemented with repository caution | Demo identities/data are synthetic. The local untracked `ECG-Sample-Report.pdf` must not be committed if it contains sensitive information. |
 | Working user interface | Implemented | Patient workflow, appointment detail/actions, document coordination, staff review, and audit surfaces call backend logic. |
 
-## Remaining challenge gaps
+## Eligibility and disqualification pre-check
 
-The submission is not literally 100% complete against every role sentence until these two administration features are added:
+| Rule | Status | Evidence |
+|---|---|---|
+| Accessible source and branch | Pass | Public repository, `main`, complete source and workflows. |
+| Meaningful Python backend | Pass | FastAPI/SQLAlchemy/Alembic backend with orchestration, tools, persistence, RBAC, and tests. |
+| Agentic AI | Pass | OpenAI client plus multi-step agents, RAG, MCP tools, state hand-offs, and persisted outcomes. |
+| Persistent SQL | Pass | SQLite/PostgreSQL-ready backend and hosted D1 relational state. |
+| Healthcare safety | Pass | Deterministic prohibition of diagnosis, prescription, dosage, and autonomous clinical interpretation. |
+| Data and secret safety | Pass | Synthetic repository data, gitignored environment files, server-only hosted secrets, and private uploads. |
 
-1. Patient self-service profile creation/update.
-2. Staff CRUD management for departments, doctors, and appointment slots.
+## Deliberately bounded production integration
 
-They do not block the booking/document/escalation journey, but they are explicitly named role capabilities and should not be represented as complete.
+The demo creates and persists real reminder/notification tasks and exposes
+their lifecycle in the interface. It does not claim delivery through an
+external SMS/email provider. Production delivery requires a hospital-approved
+provider, consent policy, templates, credentials, retries, and delivery
+receipts. Insurance, billing, bed allocation, pharmacy operations, staff
+scheduling, and operating-theatre scheduling remain optional extensions and
+are not required for the core score.

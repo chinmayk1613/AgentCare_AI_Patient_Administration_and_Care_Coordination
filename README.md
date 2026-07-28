@@ -90,6 +90,10 @@ Provider administration is fragmented across calls, forms, spreadsheets, and dis
 - JWT authentication plus backend RBAC and patient ownership checks
 - reviewer-only escalation decisions with immutable audit history
 - responsive patient journey and staff review interface
+- dedicated patient/staff Reminders & Follow-up workspace with persisted task
+  status, IST schedule, case linkage, and clinician-entered recommendations
+- ownership-scoped patient profile editor and staff-only hospital directory
+  controls for department/doctor activation and conflict-protected slot creation
 - hosted D1-backed demo adapter so the published interface remains interactive
 - synthetic data, migrations, tests, Docker Compose, and environment-only secrets
 
@@ -268,6 +272,21 @@ server-only hosted environment variable and is never included in browser code.
 The public-release migration clears prior synthetic cases and bookings, while
 an authenticated maintenance action removes uploads belonging to the retired
 demo-patient identities before public access is enabled.
+
+The dedicated **Reminders & Follow-up** workspace makes the challenge's
+continuity requirements directly testable. It displays persisted appointment
+and administrative follow-up tasks, scheduled IST time, status, case number,
+appointment context, and clinician-entered follow-up recommendations. Patient
+access remains ownership scoped; authorized staff receive the operational view.
+Cancellation stops reminder tasks and rescheduling rebuilds them from the
+replacement committed slot.
+
+The **My profile** workspace lets each patient update their own administrative
+phone, preferred language, and emergency-contact fields through a backend
+ownership check and audited D1 upsert. The staff-only **Hospital directory**
+workspace manages approved department and doctor activation controls plus
+transactional appointment slots. Booked slots are protected from destructive
+changes, duplicate doctor/time slots are rejected, and every change is audited.
 
 ## Demonstration
 

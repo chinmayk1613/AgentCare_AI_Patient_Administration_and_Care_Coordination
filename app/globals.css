@@ -231,6 +231,49 @@ textarea:focus { border-color: #67a58e; box-shadow: 0 0 0 3px rgba(39, 126, 95, 
 .resource-card h3, .document-card h3 { margin: 5px 0 3px; font-family: Georgia, "Times New Roman", serif; font-size: 15px; }
 .resource-card p { margin: 0; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .text-action { padding: 7px 10px; }
+.followup-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.followup-summary article { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, #f7fbf8, #fff); }
+.followup-summary span, .followup-recommendation > span { display: block; color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.followup-summary b { display: block; margin: 7px 0 4px; color: var(--green-dark); font-family: Georgia, "Times New Roman", serif; font-size: 24px; }
+.followup-summary small { color: var(--muted); font-size: 8px; }
+.followup-list { display: grid; gap: 12px; margin-top: 16px; }
+.followup-card { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfa; }
+.followup-card > header, .followup-card > footer { display: flex; justify-content: space-between; gap: 18px; align-items: center; }
+.followup-card h3 { margin: 5px 0 3px; font-family: Georgia, "Times New Roman", serif; font-size: 18px; }
+.followup-card header p { margin: 0; color: var(--muted); font-size: 9px; }
+.reminder-task-list { display: grid; gap: 7px; margin-top: 14px; }
+.reminder-task-list > div { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 10px 12px; border: 1px solid #d9e7df; border-radius: 10px; background: white; }
+.reminder-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: var(--green-dark); background: var(--mint); font-size: 8px; font-weight: 900; }
+.reminder-task-list b, .followup-recommendation b { display: block; font-size: 10px; }
+.reminder-task-list small { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+.followup-recommendation { margin-top: 12px; padding: 13px; border-left: 3px solid var(--green); border-radius: 0 9px 9px 0; background: #f3f9f6; }
+.followup-recommendation b { margin-top: 6px; }
+.followup-recommendation p { margin: 5px 0 0; color: #42574e; font-size: 9px; line-height: 1.5; }
+.followup-card > footer { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line); }
+.followup-card > footer small { color: var(--muted); font-size: 8px; }
+.empty-state.compact { min-height: 120px; }
+.profile-form, .slot-admin-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 22px; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfa; }
+.profile-form label, .slot-admin-form label { display: grid; gap: 6px; }
+.profile-form label > span, .slot-admin-form label > span { color: var(--muted); font-size: 8px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+.profile-form input, .profile-form select, .slot-admin-form input, .slot-admin-form select { width: 100%; padding: 11px; border: 1px solid #cbd9d1; border-radius: 9px; color: #213c31; background: white; font: inherit; font-size: 10px; }
+.profile-form input:disabled { color: #687a72; background: #f1f4f2; }
+.profile-form .wide { grid-column: 1 / -1; }
+.profile-form-actions { display: flex; grid-column: 1 / -1; justify-content: space-between; align-items: center; }
+.profile-form-actions small { color: var(--muted); font-size: 8px; }
+.slot-admin-form { grid-template-columns: 1.2fr 1fr 1fr auto; align-items: end; }
+.directory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+.directory-grid > article { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #fbfcfa; }
+.directory-grid > article.inactive { opacity: .64; background: #f2f3f2; }
+.directory-grid header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.directory-grid h3, .managed-slots h3 { margin: 4px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 14px; }
+.directory-grid article > div:last-child { display: grid; gap: 5px; margin-top: 10px; }
+.directory-grid p { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin: 0; padding: 7px 0; border-top: 1px solid var(--line); font-size: 9px; }
+.directory-grid p button { border: 0; color: var(--green); background: transparent; font-size: 8px; font-weight: 800; cursor: pointer; }
+.managed-slots { margin-top: 22px; }
+.managed-slots > article { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 10px 12px; border-top: 1px solid var(--line); }
+.managed-slots b, .managed-slots small { display: block; }
+.managed-slots b { font-size: 10px; }
+.managed-slots small { margin-top: 3px; color: var(--muted); font-size: 8px; }
 .appointment-modal-backdrop { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(10, 31, 23, .58); backdrop-filter: blur(5px); }
 .appointment-modal { overflow: auto; width: min(1080px, 96vw); max-height: 92vh; border: 1px solid #cad8d1; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(8, 35, 25, .28); }
 .appointment-modal-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 24px 26px 20px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #f6fbf8 0%, #fff 72%); }
@@ -476,6 +519,14 @@ textarea:focus { border-color: #67a58e; box-shadow: 0 0 0 3px rgba(39, 126, 95, 
   .review-summary, .trace-grid, .review-records { grid-template-columns: 1fr; }
   .review-decision > div { justify-content: stretch; flex-direction: column; }
   .resource-card, .document-card { grid-template-columns: 1fr; }
+  .followup-summary { grid-template-columns: 1fr; }
+  .followup-card > header, .followup-card > footer { align-items: flex-start; flex-direction: column; }
+  .reminder-task-list > div { grid-template-columns: 38px minmax(0, 1fr); }
+  .reminder-task-list > div > .status { grid-column: 2; justify-self: start; }
+  .profile-form, .slot-admin-form, .directory-grid { grid-template-columns: 1fr; }
+  .profile-form .wide, .profile-form-actions { grid-column: auto; }
+  .profile-form-actions { align-items: stretch; flex-direction: column; gap: 10px; }
+  .managed-slots > article { grid-template-columns: 1fr; }
   .appointment-modal-backdrop { padding: 8px; }
   .appointment-modal { width: 100%; max-height: 96vh; }
   .appointment-modal-header { padding: 18px; }

@@ -22,7 +22,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     password: "Patient123!",
     role: "patient",
     title: "Patient",
-    permissions: ["appointment:self-service", "document:write", "workflow:write"],
+    permissions: ["appointment:self-service", "document:write", "workflow:write", "profile:self-service"],
     token: "agentcare-patient-chinmay",
   },
   {
@@ -33,7 +33,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     password: "Patient123!",
     role: "patient",
     title: "Patient",
-    permissions: ["appointment:self-service", "document:write", "workflow:write"],
+    permissions: ["appointment:self-service", "document:write", "workflow:write", "profile:self-service"],
     token: "agentcare-patient-mayuresh",
   },
   {
@@ -44,7 +44,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     role: "reviewer",
     title: "Clinical operations physician reviewer",
     departmentScope: "all",
-    permissions: ["appointment:manage", "clinical:write", "escalation:review"],
+    permissions: ["appointment:manage", "clinical:write", "escalation:review", "directory:manage"],
     token: "agentcare-reviewer-vikas",
   },
   {
@@ -55,7 +55,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     role: "reviewer",
     title: "Care coordination physician reviewer",
     departmentScope: "all",
-    permissions: ["appointment:manage", "clinical:write", "escalation:review"],
+    permissions: ["appointment:manage", "clinical:write", "escalation:review", "directory:manage"],
     token: "agentcare-reviewer-arunima",
   },
 ];

@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
 type Role = "patient" | "reviewer";
-type View = "journey" | "appointments" | "documents" | "audit";
+type View = "journey" | "profile" | "appointments" | "followup" | "documents" | "directory" | "audit";
 type DemoAccount = {
   id: string;
   name: string;
@@ -51,7 +51,7 @@ type Workflow = {
     appointment?: { id: number | string; doctor: string; start_time: string; status: string };
     available_slots?: { id: string; doctor: string; start_time: string; department_code: string }[];
     documents?: { expected?: string[]; received?: string[]; missing?: string[]; latest_status?: string };
-    reminders?: { id: number | string; type: string; scheduled_at: string }[];
+    reminders?: { id: number | string; type: string; scheduled_at: string; status?: string }[];
     timeline?: { step: string; status: string; at?: string; summary?: string }[];
     agent_proposals?: { agent: string; decision: string; confidence: number; execution_mode: string; model: string }[];
     tool_traces?: ToolTrace[];
@@ -129,6 +129,31 @@ type AppointmentDetail = {
     can_reschedule: boolean;
     can_record_clinical_outcome: boolean;
   };
+};
+type PatientProfile = {
+  patient_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  preferred_language: string;
+  emergency_contact: string;
+  updated_at?: string | null;
+};
+type DirectoryData = {
+  departments: {
+    code: string;
+    name: string;
+    active: boolean;
+    doctors: { id: string; name: string; active: boolean }[];
+  }[];
+  slots: {
+    id: string;
+    departmentCode: string;
+    doctorName: string;
+    startTime: string;
+    status: string;
+    bookedWorkflowId?: string | null;
+  }[];
 };
 type DocumentDetail = {
   workflow: Workflow;
@@ -306,6 +331,13 @@ export function AgentCareApp() {
   const [reviewRationale, setReviewRationale] = useState("");
   const [reviewDepartment, setReviewDepartment] = useState("");
   const [appointmentDetail, setAppointmentDetail] = useState<AppointmentDetail | null>(null);
+  const [followUpDetails, setFollowUpDetails] = useState<Record<string, AppointmentDetail>>({});
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [patientProfile, setPatientProfile] = useState<PatientProfile | null>(null);
+  const [directoryData, setDirectoryData] = useState<DirectoryData | null>(null);
+  const [directoryDepartment, setDirectoryDepartment] = useState("cardiology");
+  const [directoryDoctor, setDirectoryDoctor] = useState("");
+  const [directorySlotTime, setDirectorySlotTime] = useState("");
   const [appointmentLoading, setAppointmentLoading] = useState(false);
   const [documentDetail, setDocumentDetail] = useState<DocumentDetail | null>(null);
   const [documentLoading, setDocumentLoading] = useState(false);
@@ -343,6 +375,9 @@ export function AgentCareApp() {
     setReviewRationale("");
     setReviewDepartment("");
     setAppointmentDetail(null);
+    setFollowUpDetails({});
+    setPatientProfile(null);
+    setDirectoryData(null);
     setDocumentDetail(null);
     try {
       const response = await fetch(`${API}/api/auth/login`, {
@@ -382,6 +417,9 @@ export function AgentCareApp() {
     setReviewRationale("");
     setReviewDepartment("");
     setAppointmentDetail(null);
+    setFollowUpDetails({});
+    setPatientProfile(null);
+    setDirectoryData(null);
     setDocumentDetail(null);
     setNotice("You have been signed out. Choose a workspace to continue.");
   }
@@ -444,6 +482,117 @@ export function AgentCareApp() {
     }
   }, [token, selected]);
 
+  const loadFollowUpDetails = useCallback(async () => {
+    if (!token) {
+      setFollowUpDetails({});
+      return;
+    }
+    const appointmentWorkflows = workflows.filter((item) => item.state.appointment);
+    if (!appointmentWorkflows.length) {
+      setFollowUpDetails({});
+      return;
+    }
+    setFollowUpLoading(true);
+    try {
+      const results = await Promise.all(appointmentWorkflows.map(async (workflow) => {
+        const response = await fetch(`${API}/api/appointments/${workflow.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return null;
+        return [workflow.id, await response.json() as AppointmentDetail] as const;
+      }));
+      setFollowUpDetails(Object.fromEntries(results.filter((item): item is readonly [string, AppointmentDetail] => Boolean(item))));
+    } finally {
+      setFollowUpLoading(false);
+    }
+  }, [token, workflows]);
+
+  const loadPatientProfile = useCallback(async () => {
+    if (!token || role !== "patient") return;
+    const response = await fetch(`${API}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
+    if (response.ok) setPatientProfile(await response.json());
+  }, [token, role]);
+
+  const loadDirectory = useCallback(async () => {
+    if (!token || role !== "reviewer") return;
+    const response = await fetch(`${API}/api/staff/directory`, { headers: { Authorization: `Bearer ${token}` } });
+    if (response.ok) {
+      const data = await response.json() as DirectoryData;
+      setDirectoryData(data);
+      const department = data.departments.find((item) => item.code === directoryDepartment) || data.departments[0];
+      if (department && !department.doctors.some((doctor) => doctor.name === directoryDoctor)) {
+        setDirectoryDoctor(department.doctors.find((doctor) => doctor.active)?.name || department.doctors[0]?.name || "");
+      }
+    }
+  }, [token, role, directoryDepartment, directoryDoctor]);
+
+  async function savePatientProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token || !patientProfile) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`${API}/api/profile`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: JSON.stringify(patientProfile),
+      });
+      const body = await response.json().catch(() => ({ detail: "Profile update failed." }));
+      if (!response.ok) throw new Error(body.detail || "Profile update failed.");
+      setPatientProfile(body);
+      setNotice("Your administrative profile was updated and audit logged.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Profile update failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateDirectoryEntity(payload: Record<string, unknown>) {
+    if (!token) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`${API}/api/staff/directory`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify(payload),
+      });
+      const body = await response.json().catch(() => ({ detail: "Directory update failed." }));
+      if (!response.ok) throw new Error(body.detail || "Directory update failed.");
+      await loadDirectory();
+      setNotice("Hospital directory control updated and audit logged.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Directory update failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function createDirectorySlot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!token || !directoryDoctor || !directorySlotTime) return;
+    setBusy(true);
+    try {
+      const response = await fetch(`${API}/api/staff/directory`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          department_code: directoryDepartment,
+          doctor_name: directoryDoctor,
+          start_time: new Date(directorySlotTime).toISOString(),
+        }),
+      });
+      const body = await response.json().catch(() => ({ detail: "Slot creation failed." }));
+      if (!response.ok) throw new Error(body.detail || "Slot creation failed.");
+      setDirectorySlotTime("");
+      await loadDirectory();
+      setNotice("A new conflict-protected appointment slot was created and audit logged.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Slot creation failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const openDocumentCase = useCallback(async (item: Workflow) => {
     if (!token) return;
     setSelected(item);
@@ -496,6 +645,21 @@ export function AgentCareApp() {
     const timer = window.setTimeout(() => void loadAudit(), 0);
     return () => window.clearTimeout(timer);
   }, [activeView, loadAudit]);
+
+  useEffect(() => {
+    if (activeView !== "followup") return;
+    const timer = window.setTimeout(() => void loadFollowUpDetails(), 0);
+    return () => window.clearTimeout(timer);
+  }, [activeView, loadFollowUpDetails]);
+
+  useEffect(() => {
+    if (!["profile", "directory"].includes(activeView)) return;
+    const timer = window.setTimeout(() => {
+      if (activeView === "profile") void loadPatientProfile();
+      if (activeView === "directory") void loadDirectory();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [activeView, loadPatientProfile, loadDirectory]);
 
   useEffect(() => {
     if (!token || !selected || selected.status !== "running" || advancing) return;
@@ -792,14 +956,20 @@ export function AgentCareApp() {
   }, [caseSearch, workflows]);
   const viewTitle: Record<View, string> = {
     journey: role === "patient" ? "Your care coordination" : "Clinical operations review",
+    profile: "Patient profile",
     appointments: "Appointments",
+    followup: "Reminders & follow-up",
     documents: "Medical record coordination",
+    directory: "Hospital directory",
     audit: role === "patient" ? "My activity history" : "Compliance history",
   };
   const navItems: { id: View; label: string; icon: string }[] = [
     { id: "journey", label: "Care journey", icon: "CJ" },
+    ...(role === "patient" ? [{ id: "profile" as View, label: "My profile", icon: "PF" }] : []),
     { id: "appointments", label: "Appointments", icon: "AP" },
+    { id: "followup", label: "Reminders & follow-up", icon: "RF" },
     { id: "documents", label: "Medical records", icon: "MR" },
+    ...(role === "reviewer" ? [{ id: "directory" as View, label: "Hospital directory", icon: "HD" }] : []),
     { id: "audit", label: role === "patient" ? "My history" : "Compliance history", icon: "CH" },
   ];
 
@@ -934,6 +1104,32 @@ export function AgentCareApp() {
               <button className="secondary" onClick={() => login("reviewer")} disabled={busy}>Continue as Staff</button>
             </div>
           </section>
+        ) : activeView === "profile" && role === "patient" ? (
+          <section className="view-panel panel">
+            <div className="section-heading">
+              <div><span className="eyebrow">Patient registration</span><h2>My administrative profile</h2></div>
+              <span className="safe-chip">Ownership protected</span>
+            </div>
+            <p className="muted">Update administrative contact preferences used for coordination. Clinical information is not collected here.</p>
+            {patientProfile ? (
+              <form className="profile-form" onSubmit={savePatientProfile}>
+                <label><span>Name</span><input value={patientProfile.name} disabled /></label>
+                <label><span>Email</span><input value={patientProfile.email} disabled /></label>
+                <label><span>Phone</span><input value={patientProfile.phone} onChange={(event) => setPatientProfile({ ...patientProfile, phone: event.target.value })} maxLength={40} /></label>
+                <label>
+                  <span>Preferred language</span>
+                  <select value={patientProfile.preferred_language} onChange={(event) => setPatientProfile({ ...patientProfile, preferred_language: event.target.value })}>
+                    <option value="en">English</option><option value="hi">Hindi</option><option value="mr">Marathi</option>
+                  </select>
+                </label>
+                <label className="wide"><span>Emergency contact</span><input value={patientProfile.emergency_contact} onChange={(event) => setPatientProfile({ ...patientProfile, emergency_contact: event.target.value })} maxLength={160} /></label>
+                <div className="profile-form-actions">
+                  <small>{patientProfile.updated_at ? `Last updated ${formatDate(patientProfile.updated_at)}` : "No self-service update recorded yet."}</small>
+                  <button className="primary compact" disabled={busy}>Save profile</button>
+                </div>
+              </form>
+            ) : <div className="empty-state compact"><span>PF</span><p>Loading your persisted profile…</p></div>}
+          </section>
         ) : activeView === "appointments" ? (
           <section className="view-panel panel">
             <div className="section-heading">
@@ -962,6 +1158,128 @@ export function AgentCareApp() {
               })}
               {!workflows.some((item) => item.state.appointment) && <div className="empty-state"><span>AP</span><p>No committed appointments yet.</p></div>}
             </div>
+          </section>
+        ) : activeView === "followup" ? (
+          <section className="view-panel panel">
+            <div className="section-heading">
+              <div>
+                <span className="eyebrow">Continuity coordination</span>
+                <h2>Reminders &amp; follow-up</h2>
+              </div>
+              <span className="safe-chip">{role === "patient" ? "Your cases only" : "Authorized operational view"}</span>
+            </div>
+            <p className="muted">
+              Administrative reminders are generated only from committed appointments. Clinical follow-up advice is displayed only when entered by an authorized clinician.
+            </p>
+            <div className="followup-summary">
+              <article>
+                <span>Active reminders</span>
+                <b>{workflows.reduce((total, item) => total + (followUpDetails[item.id]?.reminders || item.state.reminders || []).filter((reminder) => reminder.status !== "cancelled").length, 0)}</b>
+                <small>Persisted appointment and follow-up tasks</small>
+              </article>
+              <article>
+                <span>Clinician follow-ups</span>
+                <b>{Object.values(followUpDetails).filter((detail) => detail.appointment.follow_up_recommended_at || detail.appointment.follow_up_suggestions).length}</b>
+                <small>Clinician-entered recommendations only</small>
+              </article>
+              <article>
+                <span>Cancelled tasks</span>
+                <b>{workflows.reduce((total, item) => total + (followUpDetails[item.id]?.reminders || item.state.reminders || []).filter((reminder) => reminder.status === "cancelled").length, 0)}</b>
+                <small>Stopped after appointment cancellation</small>
+              </article>
+            </div>
+            <div className="followup-list">
+              {workflows.filter((item) => item.state.appointment || item.state.reminders?.length).map((item) => {
+                const detail = followUpDetails[item.id];
+                const reminders = detail?.reminders || item.state.reminders || [];
+                const appointment = detail?.appointment || item.state.appointment;
+                return (
+                  <article className="followup-card" key={item.id}>
+                    <header>
+                      <div>
+                        <span className="eyebrow">{caseNumber(item)} · {item.state.routing?.department_name || "Care coordination"}</span>
+                        <h3>{appointment?.doctor || "Appointment pending"}</h3>
+                        <p>{appointment?.start_time ? formatDate(appointment.start_time) : "No committed appointment time"}</p>
+                      </div>
+                      <span className={`status ${appointment?.status || item.status}`}>{prettyStep(appointment?.status || item.status)}</span>
+                    </header>
+                    <div className="reminder-task-list">
+                      {reminders.map((reminder) => (
+                        <div key={reminder.id}>
+                          <span className="reminder-icon">{reminder.type === "appointment_24h" ? "24H" : "FU"}</span>
+                          <div>
+                            <b>{reminder.type === "appointment_24h" ? "Appointment reminder" : "Administrative follow-up task"}</b>
+                            <small>{formatDate(reminder.scheduled_at)}</small>
+                          </div>
+                          <span className={`status ${reminder.status || "scheduled"}`}>{prettyStep(reminder.status || "scheduled")}</span>
+                        </div>
+                      ))}
+                      {!reminders.length && <p className="muted">No reminder is scheduled until the appointment is committed.</p>}
+                    </div>
+                    <div className="followup-recommendation">
+                      <span>Clinician follow-up recommendation</span>
+                      <b>{detail?.appointment.follow_up_recommended_at ? formatDate(detail.appointment.follow_up_recommended_at) : "No recommended date recorded"}</b>
+                      <p>{detail?.appointment.follow_up_suggestions || "No clinician-authored follow-up instructions are recorded."}</p>
+                    </div>
+                    <footer>
+                      <small>Reminder changes are audit logged and rebuilt after rescheduling.</small>
+                      {item.state.appointment ? <button className="text-action" onClick={() => void openAppointment(item)}>Open appointment</button> : null}
+                    </footer>
+                  </article>
+                );
+              })}
+              {followUpLoading && !Object.keys(followUpDetails).length && <div className="empty-state compact"><span>RF</span><p>Loading persisted reminder details…</p></div>}
+              {!followUpLoading && !workflows.some((item) => item.state.appointment || item.state.reminders?.length) && (
+                <div className="empty-state"><span>RF</span><p>No committed appointments or follow-up tasks yet.</p></div>
+              )}
+            </div>
+          </section>
+        ) : activeView === "directory" && role === "reviewer" ? (
+          <section className="view-panel panel">
+            <div className="section-heading">
+              <div><span className="eyebrow">Authorized hospital operations</span><h2>Departments, doctors &amp; slots</h2></div>
+              <span className="safe-chip">Staff only · audit logged</span>
+            </div>
+            <p className="muted">Manage availability controls for the approved hospital catalog. Booked slots cannot be overwritten or disabled.</p>
+            {directoryData ? (
+              <>
+                <form className="slot-admin-form" onSubmit={createDirectorySlot}>
+                  <label><span>Department</span><select value={directoryDepartment} onChange={(event) => { setDirectoryDepartment(event.target.value); setDirectoryDoctor(""); }}>
+                    {directoryData.departments.filter((department) => department.active).map((department) => <option key={department.code} value={department.code}>{department.name}</option>)}
+                  </select></label>
+                  <label><span>Doctor</span><select value={directoryDoctor} onChange={(event) => setDirectoryDoctor(event.target.value)}>
+                    {(directoryData.departments.find((department) => department.code === directoryDepartment)?.doctors || []).filter((doctor) => doctor.active).map((doctor) => <option key={doctor.id} value={doctor.name}>{doctor.name}</option>)}
+                  </select></label>
+                  <label><span>New slot time</span><input type="datetime-local" value={directorySlotTime} onChange={(event) => setDirectorySlotTime(event.target.value)} /></label>
+                  <button className="primary compact" disabled={busy || !directoryDoctor || !directorySlotTime}>Create available slot</button>
+                </form>
+                <div className="directory-grid">
+                  {directoryData.departments.map((department) => (
+                    <article key={department.code} className={!department.active ? "inactive" : ""}>
+                      <header>
+                        <div><span className="eyebrow">{department.code}</span><h3>{department.name}</h3></div>
+                        <button className="text-action" disabled={busy} onClick={() => void updateDirectoryEntity({ entity_type: "department", department_code: department.code, display_name: department.name, active: !department.active })}>{department.active ? "Deactivate" : "Activate"}</button>
+                      </header>
+                      <div>
+                        {department.doctors.map((doctor) => (
+                          <p key={doctor.id}><span>{doctor.name}</span><button disabled={busy || !department.active} onClick={() => void updateDirectoryEntity({ entity_type: "doctor", department_code: department.code, display_name: doctor.name, active: !doctor.active })}>{doctor.active ? "Active" : "Inactive"}</button></p>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="managed-slots">
+                  <div className="section-heading"><div><span className="eyebrow">Transactional availability</span><h3>Appointment slots</h3></div></div>
+                  {directoryData.slots.slice(0, 80).map((slot) => (
+                    <article key={slot.id}>
+                      <div><b>{slot.doctorName}</b><small>{slot.departmentCode} · {formatDate(slot.startTime)}</small></div>
+                      <span className={`status ${slot.status}`}>{prettyStep(slot.status)}</span>
+                      <button className="text-action" disabled={busy || slot.status === "booked" || Boolean(slot.bookedWorkflowId)} onClick={() => void updateDirectoryEntity({ slot_id: slot.id, slot_status: slot.status === "available" ? "unavailable" : "available" })}>{slot.status === "available" ? "Disable" : slot.status === "booked" ? "Protected" : "Enable"}</button>
+                    </article>
+                  ))}
+                </div>
+              </>
+            ) : <div className="empty-state"><span>HD</span><p>Loading the persisted hospital directory…</p></div>}
           </section>
         ) : activeView === "documents" ? (
           <section className="view-panel panel">
