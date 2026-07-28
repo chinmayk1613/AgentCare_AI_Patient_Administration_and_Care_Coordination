@@ -284,6 +284,92 @@ D1 database, R2 objects, or any hosted secret.
 Never paste a real key into source code, browser variables, screenshots,
 documentation, commits, or issue comments.
 
+## 2D. Clone, seed, and independent deployment behavior
+
+Cloning AgentCare provides the application and the instructions for creating
+synthetic starter data. It does not clone the currently hosted runtime.
+
+### Local clone lifecycle
+
+```text
+GitHub clone
+  -> copy .env.example to a gitignored .env
+  -> install dependencies
+  -> run migrations
+  -> run the synthetic seed process
+  -> start a new local database and application
+  -> local user activity creates new transactional records
+```
+
+The developer normally opens `http://localhost:3000`. A public URL is not
+created merely by cloning or starting the application.
+
+For the Python/FastAPI path, the explicit initialization is:
+
+```powershell
+cd backend
+python -m app.seed
+python -m uvicorn app.main:app --reload
+```
+
+The Docker route performs the configured initialization inside the local
+containers. The seed process is idempotent: it establishes the standard
+synthetic identities and hospital reference data without importing activity
+from the public demonstration.
+
+### What the starter process creates
+
+- synthetic patient and staff identities;
+- departments and exactly three globally unique doctors per department;
+- appointment-slot/reference data;
+- approved RAG policies, routing terminology, permissions, and safety rules;
+- a new local SQL database owned by that clone.
+
+Appointments, requests, document metadata, uploaded files, reminders,
+escalations, human decisions, and audit events are not pre-copied from the
+public site. They are created as users exercise that new environment.
+
+### Creating another public URL
+
+To publish an independent instance, the new owner must:
+
+1. Create a separate hosting project and receive a separate URL.
+2. Provision a separate SQL/D1 database and private R2/object store.
+3. Apply the repository migrations.
+4. Configure server-side environment values and their own funded
+   `OPENAI_API_KEY`.
+5. Build, save, and deploy their own version.
+6. Use only synthetic data and configure the required authentication/access
+   policy.
+
+The hosted adapter then materializes its own catalog, slots, and RAG chunks in
+the new runtime. Its workflows, appointments, uploads, reminders, and audit
+history evolve independently.
+
+| Data or configuration | Same template/code | Same persisted data |
+|---|---:|---:|
+| Source, agents, tools, migrations | Yes | Not applicable |
+| Synthetic identity and catalog definitions | Yes | No |
+| RAG source policies and ingestion logic | Yes | No existing index |
+| Slots and bookings | Same generation/business rules | No |
+| Requests, appointments, reminders, audits | No; newly generated | No |
+| Uploaded documents | No | No |
+| Database and object storage | No | No |
+| OpenAI key and environment secrets | No | No |
+| Public URL | No | No |
+
+Therefore, another installation is not a mirror of
+`agentcare-evidence-gated.chika1603.chatgpt.site`. It is a new AgentCare
+instance built from the same source:
+
+```text
+same code + same synthetic templates
+              -> different URL
+              -> different database and storage
+              -> different secrets
+              -> different appointments, documents, reminders, and history
+```
+
 ## 3. Clone and inspect the repository
 
 ### Windows PowerShell

@@ -561,6 +561,50 @@ def build_pdf() -> None:
     ]
 
     story += [
+        section_title("2D", "Clone, seed, and independent deployments", s["h1"]),
+        P(
+            "Cloning provides source, migrations, synthetic seed definitions, and safe templates. It does not create a public URL or copy the current hosted database, files, secrets, or activity.",
+            s["callout"],
+        ),
+        P("Local clone lifecycle", s["h2"]),
+        C(
+            "GitHub clone\n"
+            "  -> copy .env.example to gitignored .env\n"
+            "  -> install dependencies + run migrations\n"
+            "  -> run synthetic seed process\n"
+            "  -> start a new local database and application\n"
+            "  -> new activity creates new transactional records",
+            s["code"],
+        ),
+        B("Local address is normally http://localhost:3000; cloning does not publish a site.", s["bullet"]),
+        B("python -m app.seed creates standard synthetic identities and hospital reference data.", s["bullet"]),
+        B("Requests, bookings, uploads, reminders, escalations, and audits are created by the new user's activity.", s["bullet"]),
+        P("Independent public deployment", s["h2"]),
+        B("Create a separate hosting project and URL.", s["bullet"]),
+        B("Provision a separate SQL/D1 database and private R2/object store.", s["bullet"]),
+        B("Apply migrations and configure server-side environment values plus the owner's funded OpenAI key.", s["bullet"]),
+        B("Build, save, deploy, and configure authentication/access policy.", s["bullet"]),
+        wrapped_table(
+            [
+                ["Item", "Same definition/code?", "Same persisted records?"],
+                ["Agents, tools, migrations", "Yes", "Not applicable"],
+                ["Synthetic identities/catalog", "Yes", "No"],
+                ["RAG policies/ingestion", "Yes", "No existing index"],
+                ["Slots/business rules", "Yes", "No bookings/state"],
+                ["Requests/docs/reminders/audits", "New activity", "No"],
+                ["Database, storage, secrets, URL", "No", "No"],
+            ],
+            [66 * mm, 45 * mm, 55 * mm],
+            font_size=6.9,
+        ),
+        P(
+            "Same code and synthetic templates; different URL, database, storage, secrets, appointments, documents, reminders, and history. Another installation cannot access or change this demonstration's D1 or private R2 data.",
+            s["danger"],
+        ),
+        PageBreak(),
+    ]
+
+    story += [
         section_title("3", "Clone and inspect", s["h1"]),
         P("Windows PowerShell, macOS, or Linux:", s["body"]),
         C(

@@ -73,6 +73,47 @@ Never commit `.env` or any real credential. Rotating or removing a hosted
 secret is performed in the hosting environment and does not require exposing
 it in repository code.
 
+### What happens when someone clones or redeploys the repository
+
+Cloning the repository does not create a public URL and does not copy this
+production environment. The clone contains source code, migrations, synthetic
+seed definitions, and safe configuration templates.
+
+For local execution:
+
+1. The developer clones the repository and creates their own gitignored `.env`.
+2. Database migrations create a new local SQL schema.
+3. `python -m app.seed` (or the Docker startup path) inserts the standard
+   synthetic starter records: demo identities, departments, unique doctors,
+   slots, permissions, and approved RAG/policy content.
+4. Requests, appointments, documents, reminders, escalations, and audit events
+   are created only when that developer uses the application.
+5. The application runs at a local address such as `http://localhost:3000`;
+   cloning alone does not publish it.
+
+For an independent public deployment, the new owner must provision their own
+hosting project, URL, SQL/D1 database, private object/R2 storage, environment
+variables, OpenAI key, and migrations. The hosted adapter initializes or
+materializes its own catalog, transactional slots, and RAG index inside those
+new resources. User activity then creates independent workflows, bookings,
+documents, reminders, and audit history.
+
+| Item | Reused from repository | Copied from this live deployment |
+|---|---:|---:|
+| Application and agent code | Yes | No runtime copy |
+| Synthetic account/catalog definitions | Yes | No persisted records |
+| Migrations and seed logic | Yes | No database |
+| RAG source policies and ingestion logic | Yes | No existing D1 index |
+| Patient requests and appointments | No; generated in the new runtime | No |
+| Uploaded documents | No; stored in the new runtime | No |
+| Reminders, escalations, and audit history | No; generated from new activity | No |
+| OpenAI key and hosted secrets | No; new owner supplies them | No |
+
+In short: **same code and synthetic templates; different URL, database,
+storage, secrets, appointments, documents, reminders, and history.** Deleting
+the new owner's local database or deployment resources removes only their
+generated data and does not affect this public demonstration.
+
 ## Actual business problem
 
 Provider administration is fragmented across calls, forms, spreadsheets, and disconnected systems. The result is repeated work, routing inconsistency, appointment conflicts, lost document hand-offs, unreliable follow-up, and little evidence of who made which decision. The implementation closes the unsafe gap between probabilistic model output and authoritative hospital transactions: LLM output is always a proposal; deterministic backend policy gates own authorization and state changes.
