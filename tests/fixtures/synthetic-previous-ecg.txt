@@ -1,0 +1,5 @@
+SYNTHETIC TEST DOCUMENT
+Document type: ECG
+Patient: Demo Patient
+Purpose: AgentCare document-registration workflow testing only.
+This file contains no real patient or clinical information.

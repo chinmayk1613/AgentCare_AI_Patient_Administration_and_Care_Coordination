@@ -1,0 +1,30 @@
+services:
+  api:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: sqlite:////data/agentcare.db
+      JWT_SECRET: ${JWT_SECRET:-local-demo-secret-change-before-sharing}
+      LLM_ENABLED: ${LLM_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5-mini}
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - agentcare_data:/data
+    ports:
+      - "8000:8000"
+  web:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+
+volumes:
+  agentcare_data:
+
