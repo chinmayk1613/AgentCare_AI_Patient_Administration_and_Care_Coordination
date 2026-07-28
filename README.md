@@ -78,6 +78,13 @@ With `LLM_ENABLED=true` and `OPENAI_API_KEY` set, specialist proposals use the O
 
 ## Run locally
 
+For a clone-to-running-system walkthrough with Docker and native development
+paths, environment configuration, OpenAI setup, synthetic accounts,
+verification scenarios, troubleshooting, and security checks, use:
+
+- [Step-by-step local setup guide](docs/LOCAL_SETUP_GUIDE.md)
+- [Print-ready local setup guide (PDF)](output/pdf/AgentCare_Local_Setup_Guide.pdf)
+
 ### One command
 
 ```bash
