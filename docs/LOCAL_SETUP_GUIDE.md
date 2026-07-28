@@ -101,6 +101,15 @@ AgentCare has two real OpenAI integration paths:
 | Python/FastAPI | `openai-agents==0.2.10`; `Agent` and `Runner.run_sync`; `OPENAI_MODEL` defaults to `gpt-5-mini` | Structured Safety Agent and Department Routing Agent proposals, limited to three turns |
 | Hosted worker | Direct HTTPS `fetch` to the OpenAI Responses API at `/v1/responses`; `OPENAI_AGENT_MODEL`; deployment configured for `gpt-5-mini` | Structured Safety Agent and Intent Agent proposals using strict JSON schema |
 
+**Where the LLM is used:** When a patient submits a free-text request, the LLM
+helps the Safety Agent identify potential emergency or prohibited clinical
+language, the hosted Intent Agent classify the administrative action such as
+booking, rescheduling, or cancellation, and the Routing Agent propose the most
+appropriate hospital department using retrieved RAG evidence. Its response is
+only a structured proposal with confidence and rationale. Deterministic policy
+gates, human-review thresholds, MCP tools, and committed SQL records decide and
+prove the final action.
+
 The hosted source has a code-level fallback model value, but the deployed model
 is selected by the environment. The model never receives database credentials
 and never directly books, cancels, reschedules, validates a document, writes

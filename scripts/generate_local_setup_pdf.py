@@ -490,7 +490,12 @@ def build_pdf() -> None:
             [31 * mm, 86 * mm, 49 * mm],
             font_size=6.55,
         ),
-        Spacer(1, 6 * mm),
+        Spacer(1, 4 * mm),
+        P("Where the LLM is used", s["h2"]),
+        P(
+            "When a patient submits a free-text request, the LLM helps the Safety Agent identify potential emergency or prohibited clinical language, the hosted Intent Agent classify booking, rescheduling, or cancellation, and the Routing Agent propose a hospital department using retrieved RAG evidence. The result is only a structured proposal; policy gates, human-review thresholds, MCP tools, and committed SQL records determine and prove the final action.",
+            s["callout"],
+        ),
         P("RAG behavior", s["h2"]),
         B("Catalog, terminology, document rules, providers, and guardrails are parsed and chunked.", s["bullet"]),
         B("Evidence references include policy key, version, and chunk number.", s["bullet"]),
