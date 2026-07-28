@@ -122,7 +122,10 @@ def canonical_terms(value: str) -> set[str]:
         canonical
         for canonical, synonyms in TERMINOLOGY.items()
         if any(
-            re.search(rf"\b{re.escape(synonym).replace(r'\ ', r'\s+')}\b", text)
+            re.search(
+                r"\b" + re.escape(synonym).replace(r"\ ", r"\s+") + r"\b",
+                text,
+            )
             for synonym in synonyms
         )
     }
