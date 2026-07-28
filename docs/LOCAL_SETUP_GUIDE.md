@@ -215,6 +215,75 @@ Open a case in the staff workbench or inspect persisted API details:
 - Appointment and document confirmation is reconstructed from persisted SQL/D1
   records, not generated from model text.
 
+## 2C. Public URL, hosting, and GitHub clone responsibilities
+
+The public demonstration is hosted at
+<https://agentcare-evidence-gated.chika1603.chatgpt.site/>. The URL is assembled
+from the deployment slug (`agentcare-evidence-gated`), the Sites namespace
+(`chika1603`), and the managed `chatgpt.site` domain.
+
+The release flow is:
+
+```text
+Validated local source
+  -> pnpm run build
+  -> exact commit pushed to the private Sites source repository
+  -> build output + hosting manifest + migrations saved as a numbered version
+  -> saved version deployed to the public production URL
+```
+
+The production site is a deployed copy of the locally tested source. After
+deployment it executes in the managed hosting environment; it is not served
+from the developer's laptop, and the laptop may be switched off. GitHub stores
+the public source, but it is not the production server and a GitHub push alone
+does not change the deployed URL.
+
+### What is public and what remains private
+
+| Item | Public or private | Explanation |
+|---|---|---|
+| Application URL and browser assets | Public | Anyone with the URL can open the demo |
+| Source repository | Public | Contains code, migrations, synthetic seed data, and `.env.example` |
+| Synthetic demo names and documented credentials | Public | Deliberate evaluator access; all records must remain synthetic |
+| `.openai/hosting.json` | Public configuration | Contains project/binding identifiers, not secret values |
+| OpenAI key and hosted environment values | Server-side secret | Stored by Sites and unavailable to browser JavaScript or GitHub |
+| Hosted D1 data and private R2 files | Runtime resources | Not copied to a Git clone; access is mediated by authenticated APIs |
+| Developer's local files and `.env` | Private | They are neither uploaded nor served by the public URL |
+
+Public access is safe only for the synthetic demonstration boundary. The URL
+reveals the Sites namespace, and the public demo credentials allow evaluators
+to see shared synthetic staff data. Sharing the URL does not share the
+developer's OpenAI key, GitHub login, local computer, or local files. Never
+enter or upload real patient information.
+
+### Requirements for a person who clones the GitHub repository
+
+A clone receives source code, dependency manifests, migrations, sample data,
+and `.env.example`. It does not receive the existing production URL, hosted
+D1 database, R2 objects, or any hosted secret.
+
+1. Copy `.env.example` to `.env`; `.env` is deliberately ignored by Git.
+2. Install dependencies and initialize or migrate the local database.
+3. Generate a new local `JWT_SECRET`.
+4. For actual OpenAI execution, supply the runner's own key and configure:
+
+   ```dotenv
+   LLM_ENABLED=true
+   OPENAI_API_KEY=the-runners-own-key
+   OPENAI_MODEL=gpt-5-mini
+   ```
+
+5. Without an OpenAI key, use `LLM_ENABLED=false`. The deterministic
+   safe-fallback still demonstrates persistence, RAG, MCP, authorization,
+   booking, documents, and audit evidence, but it is not a live LLM call.
+6. Follow the Docker or native startup steps below.
+7. To make another public deployment, provision a separate hosting project,
+   D1/database, private object storage, server-side secrets, migrations, and
+   access policy. The new owner receives a different URL.
+
+Never paste a real key into source code, browser variables, screenshots,
+documentation, commits, or issue comments.
+
 ## 3. Clone and inspect the repository
 
 ### Windows PowerShell

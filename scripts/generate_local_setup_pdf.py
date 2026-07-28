@@ -514,6 +514,53 @@ def build_pdf() -> None:
     ]
 
     story += [
+        section_title("2C", "Public URL, hosting, and GitHub clones", s["h1"]),
+        P(
+            "Public demo: https://agentcare-evidence-gated.chika1603.chatgpt.site/. The URL combines the deployment slug, Sites namespace, and managed chatgpt.site domain.",
+            s["callout"],
+        ),
+        P("How the URL is created and released", s["h2"]),
+        C(
+            "validated local source\n"
+            "  -> pnpm run build\n"
+            "  -> exact commit pushed to private Sites source\n"
+            "  -> output + hosting manifest + migrations saved as a version\n"
+            "  -> saved version deployed to the public production URL",
+            s["code"],
+        ),
+        P(
+            "The production site is a deployed copy of the locally tested source. It runs in the managed hosting environment, not on the developer's laptop, so the laptop may be switched off. GitHub stores public source but is not the production server; a GitHub push alone does not update the URL.",
+            s["body"],
+        ),
+        wrapped_table(
+            [
+                ["Item", "Visibility", "Meaning"],
+                ["URL + browser assets", "Public", "Anyone with the URL can open the demo"],
+                ["GitHub source", "Public", "Code, migrations, synthetic seeds, .env.example"],
+                ["Demo users/credentials", "Public", "Evaluator access; synthetic data only"],
+                [".openai/hosting.json", "Public config", "Project/binding IDs; no secret values"],
+                ["OpenAI key", "Server secret", "Stored by Sites; absent from GitHub/browser"],
+                ["D1 + private R2", "Hosted runtime", "Not copied into a Git clone"],
+                ["Local files + .env", "Private", "Not uploaded or served by the public URL"],
+            ],
+            [49 * mm, 32 * mm, 85 * mm],
+            font_size=6.7,
+        ),
+        Spacer(1, 3 * mm),
+        P("What a GitHub user must configure", s["h2"]),
+        B("Copy .env.example to the gitignored .env and create a new JWT_SECRET.", s["bullet"]),
+        B("Install dependencies and initialize or migrate the local database.", s["bullet"]),
+        B("For real LLM calls: LLM_ENABLED=true, OPENAI_MODEL=gpt-5-mini, and the runner's own OPENAI_API_KEY.", s["bullet"]),
+        B("Without a key, safe-fallback works but OpenAI-backed proposals do not run.", s["bullet"]),
+        B("A separate public deployment needs its own hosting project, database, object storage, secrets, migrations, access policy, and URL.", s["bullet"]),
+        P(
+            "Sharing the demo URL does not share the OpenAI key, GitHub login, local computer, or local files. It does expose synthetic demo identities and shared synthetic content. Never enter or upload real PHI, and never commit .env.",
+            s["danger"],
+        ),
+        PageBreak(),
+    ]
+
+    story += [
         section_title("3", "Clone and inspect", s["h1"]),
         P("Windows PowerShell, macOS, or Linux:", s["body"]),
         C(

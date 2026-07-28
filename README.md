@@ -22,6 +22,57 @@ synthetic seed data, automated tests, security documentation, and deployment
 metadata. The deployment is private during development; evaluators can run the
 same system locally using the instructions below if access has not been shared.
 
+## How the public URL is created and hosted
+
+The public demonstration URL is:
+<https://agentcare-evidence-gated.chika1603.chatgpt.site/>.
+
+- `agentcare-evidence-gated` is the deployment slug, `chika1603` is the Sites
+  namespace, and `chatgpt.site` is the managed hosting domain.
+- A validated local source commit is built with `pnpm run build`, pushed to the
+  private source repository for the Sites project, saved as a numbered,
+  immutable version, and deployed to production.
+- `.openai/hosting.json` connects that deployment to its Sites project and
+  declares the hosted D1 database and private R2 upload-storage bindings. It
+  contains identifiers and binding names, not an OpenAI credential.
+- `OPENAI_API_KEY` is configured separately as a server-side Sites secret. It
+  is not placed in GitHub, `.openai/hosting.json`, the browser bundle, or the
+  public URL.
+- The deployed application runs in the managed hosting environment. It is a
+  deployed copy of the tested local source; it is **not served from the local
+  computer**, and the computer does not need to remain switched on.
+- The URL is public, so anyone with it can open the demonstration. Public
+  access does not expose local files, a local `.env`, the GitHub account, or
+  server-side secrets. It does expose the documented synthetic demo identities,
+  shared synthetic demo content, and the owner namespace visible in the URL.
+  Never enter or upload real PHI.
+- GitHub is the public source repository, not the production runtime. A GitHub
+  push does not update this URL automatically. Each release must be rebuilt,
+  saved as a new Sites version, and deployed; the same URL then points to the
+  newly deployed version.
+
+### What a person cloning GitHub must configure
+
+A clone contains the application source and safe environment templates only.
+It does **not** inherit this deployment's D1 data, R2 objects, hosted
+environment variables, OpenAI key, or ownership of the existing URL.
+
+1. Clone the repository and copy `.env.example` to a local, gitignored `.env`.
+2. Install the dependencies and initialize or migrate the local database.
+3. Set a new local `JWT_SECRET`.
+4. To use genuine LLM proposals, set `LLM_ENABLED=true`,
+   `OPENAI_MODEL=gpt-5-mini`, and add **the runner's own**
+   `OPENAI_API_KEY`. Without a key, the disclosed deterministic safe-fallback
+   remains available, but OpenAI-backed proposals do not run.
+5. Start the backend and frontend using the local setup guide below.
+6. To publish an independent copy, create and configure a separate hosting
+   project, database, object store, server-side secrets, migrations, and access
+   policy. That deployment receives its own URL.
+
+Never commit `.env` or any real credential. Rotating or removing a hosted
+secret is performed in the hosting environment and does not require exposing
+it in repository code.
+
 ## Actual business problem
 
 Provider administration is fragmented across calls, forms, spreadsheets, and disconnected systems. The result is repeated work, routing inconsistency, appointment conflicts, lost document hand-offs, unreliable follow-up, and little evidence of who made which decision. The implementation closes the unsafe gap between probabilistic model output and authoritative hospital transactions: LLM output is always a proposal; deterministic backend policy gates own authorization and state changes.
